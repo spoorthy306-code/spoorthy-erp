@@ -8,6 +8,12 @@ Run UI:  streamlit run ui/app.py
 """
 
 import sys, os
+import smtplib
+import ssl
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+from typing import Optional
 sys.path.insert(0, os.path.dirname(__file__))
 
 from db.schema import (
@@ -18,6 +24,97 @@ from db.schema import (
 )
 from db.seed import seed_all
 from datetime import date
+
+
+def send_email(
+    to: str,
+    subject: str,
+    body_html: str,
+    attachment_path: Optional[str] = None,
+    attachment_name: Optional[str] = None,
+    smtp_host: str = "smtp.gmail.com",
+    smtp_port: int = 587,
+) -> bool:
+    """
+    Send an email via Gmail SMTP (TLS).
+
+    Credentials are read from environment variables:
+      SMTP_USER  — Gmail address (sender)
+      SMTP_PASS  — Gmail App Password (16-char, not your account password)
+
+    Args:
+        to:              Recipient email address.
+        subject:         Email subject line.
+        body_html:       HTML body of the email.
+        attachment_path: Absolute path to a PDF/file to attach (optional).
+        attachment_name: Filename shown to the recipient (defaults to basename).
+        smtp_host:       SMTP server (default: smtp.gmail.com).
+        smtp_port:       SMTP port  (default: 587 / STARTTLS).
+
+    Returns:
+        True on success, False on failure (prints error to stderr).
+
+    Example — send a sales invoice PDF:
+        send_email(
+            to="customer@example.com",
+            subject="Invoice SPRY/SINV/2025-26/000001",
+            body_html="<p>Dear Customer,<br>Please find your invoice attached.</p>",
+            attachment_path="/tmp/invoice_001.pdf",
+        )
+
+    Example — send a payroll slip:
+        send_email(
+            to="employee@example.com",
+            subject="Salary Slip – March 2026",
+            body_html="<p>Dear Employee,<br>Your payroll slip is attached.</p>",
+            attachment_path="/tmp/payslip_march2026.pdf",
+            attachment_name="PaySlip_March2026.pdf",
+        )
+    """
+    smtp_user = os.environ.get("SMTP_USER")
+    smtp_pass = os.environ.get("SMTP_PASS")
+
+    if not smtp_user or not smtp_pass:
+        print(
+            "send_email: SMTP_USER or SMTP_PASS not set in environment.",
+            file=sys.stderr,
+        )
+        return False
+
+    msg = MIMEMultipart("alternative")
+    msg["From"] = smtp_user
+    msg["To"] = to
+    msg["Subject"] = subject
+
+    msg.attach(MIMEText(body_html, "html"))
+
+    if attachment_path:
+        fname = attachment_name or os.path.basename(attachment_path)
+        try:
+            with open(attachment_path, "rb") as fh:
+                part = MIMEApplication(fh.read(), Name=fname)
+            part["Content-Disposition"] = f'attachment; filename="{fname}"'
+            msg.attach(part)
+        except OSError as exc:
+            print(f"send_email: could not read attachment — {exc}", file=sys.stderr)
+            return False
+
+    ctx = ssl.create_default_context()
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
+            server.ehlo()
+            server.starttls(context=ctx)
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(smtp_user, to, msg.as_string())
+        print(f"  ✅  Email sent → {to}  [{subject}]")
+        return True
+    except smtplib.SMTPAuthenticationError:
+        print("send_email: authentication failed — check SMTP_USER / SMTP_PASS.", file=sys.stderr)
+    except smtplib.SMTPException as exc:
+        print(f"send_email: SMTP error — {exc}", file=sys.stderr)
+    except OSError as exc:
+        print(f"send_email: network error — {exc}", file=sys.stderr)
+    return False
 
 
 def run_validation():
