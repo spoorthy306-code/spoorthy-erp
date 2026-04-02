@@ -2,7 +2,7 @@ import os
 os.system('mkdir -p ui')
 from openai import OpenAI
 client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
-prompt = """Build COMPLETE Spoorthy Quantum ERP Streamlit ui/app.py for ~/spoorthy_complete.
+prompt = """Build COMPLETE Spoorthy ERP Streamlit ui/app.py for ~/spoorthy_complete.
 
 BACKEND: FastAPI localhost:8000 (companies/vouchers/parties/inventory/dashboard/ledger), PostgreSQL, 50 MCP tools (db_get_trial_balance, calculate_working_capital).
 

@@ -1,0 +1,47 @@
+# Cursor Rules for Spoorthy ERP
+# Enforce code quality, structure, naming and safe operations
+
+# Python style
+python:
+  format:
+    tool: black
+    line_length: 88
+  lint:
+    tool: flake8
+    max_line_length: 88
+  typing: true
+
+# Directory structure
+project:
+  required_folders:
+    - db
+    - ui
+    - tests
+  required_files:
+    - app.py
+    - ui/app.py
+    - main.py
+    - asgi.py
+
+# Naming conventions
+naming:
+  table_names: snake_case
+  model_names: PascalCase
+  route_names: kebab-case
+  function_names: snake_case
+
+# Code change policy
+commit_message:
+  style: "<scope>: <short description>"
+  required_prefix: "[SPOORTHY]"
+
+# Safety rules
+disabled_patterns:
+  - "exec("
+  - "eval("
+
+# CI/tests
+ci:
+  commands:
+    - "python -m pytest --maxfail=1 --disable-warnings -q"
+    - "python -m mypy ."

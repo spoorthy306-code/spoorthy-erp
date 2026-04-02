@@ -1,0 +1,42 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  - job_name: 'spoorthy-api'
+    static_configs:
+      - targets: ['api:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # db:5432 and redis:6379 do NOT expose Prometheus metrics natively.
+  # Add postgres-exporter and redis-exporter containers to scrape them.
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Uncomment after adding flower service (celery monitoring UI) to docker-compose:
+  # - job_name: 'spoorthy-celery'
+  #   static_configs:
+  #     - targets: ['flower:5555']
+  #   metrics_path: '/metrics'
+  #   scrape_interval: 30s
+
+  # Uncomment after adding node-exporter service to docker-compose:
+  # - job_name: 'node-exporter'
+  #   static_configs:
+  #     - targets: ['node-exporter:9100']
+  #   scrape_interval: 30s

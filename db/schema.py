@@ -1,5 +1,5 @@
 """
-SPOORTHY ERP — COMPLETE SYSTEM
+Spoorthy ERP — COMPLETE SYSTEM
 db/schema.py
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Full PostgreSQL Schema via SQLAlchemy ORM
@@ -26,6 +26,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker, Session
 from sqlalchemy.sql import func
 from datetime import datetime
+from typing import Generator
 import enum
 import os
 
@@ -41,7 +42,7 @@ engine = create_engine(DB_URL, echo=False, future=True)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
-def get_db() -> Session:
+def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
         yield db
@@ -51,7 +52,7 @@ def get_db() -> Session:
 
 def create_all_tables():
     Base.metadata.create_all(bind=engine)
-    print("✅ All SPOORTHY ERP tables created.")
+    print("✅ All Spoorthy ERP tables created.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -277,6 +278,26 @@ class Transaction(Base):
     )
 
 
+class ExchangeRate(Base):
+    __tablename__ = "exchange_rates"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    from_currency = Column(String(3), nullable=False, index=True)
+    to_currency = Column(String(3), nullable=False, index=True)
+    rate = Column(Numeric(18, 8), default=1.0)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Escalation(Base):
+    __tablename__ = "escalations"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    task_id = Column(Integer, ForeignKey("tasks.id"), nullable=False)
+    escalated_at = Column(DateTime, default=datetime.utcnow)
+    action = Column(String(100), nullable=False)
+    status = Column(String(50), default="PENDING")
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # 7. STOCK GROUPS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -329,6 +350,13 @@ class StockItem(Base):
     reorder_qty    = Column(Numeric(10, 3), default=0.0)
     current_stock  = Column(Numeric(10, 3), default=0.0)
     valuation_method= Column(String(10), default="FIFO")
+    serial_number  = Column(String(100), nullable=True)
+    lot_number     = Column(String(100), nullable=True)
+    expiry_date    = Column(Date, nullable=True)
+    warehouse      = Column(String(100), nullable=True)
+    zone           = Column(String(50), nullable=True)
+    rack           = Column(String(50), nullable=True)
+    bin_location   = Column(String(50), nullable=True)
     is_active      = Column(Boolean, default=True)
     created_at     = Column(DateTime, default=datetime.utcnow)
 
@@ -509,6 +537,7 @@ class AuditTrail(Base):
 
 class Employee(Base):
     __tablename__ = "employees"
+    __table_args__ = {'extend_existing': True}
 
     id              = Column(Integer, primary_key=True, autoincrement=True)
     emp_code        = Column(String(20), unique=True, nullable=False, index=True)
@@ -737,6 +766,9 @@ class AppUser(Base):
 
     phone           = Column(String(20), nullable=True)
     mfa_enabled     = Column(Boolean, default=False)
+    mfa_secret      = Column(String(128), nullable=True)
+    password_changed_at = Column(DateTime, nullable=True)
+    password_expires_at = Column(DateTime, nullable=True)
 
     role            = relationship("Role", back_populates="users")
 
@@ -925,7 +957,256 @@ class ApprovalRule(Base):
     approver_role    = relationship("Role")
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+class IdempotencyKey(Base):
+    __tablename__  = "idempotency_keys"
+
+    id             = Column(Integer, primary_key=True, autoincrement=True)
+    key            = Column(String(128), unique=True, nullable=False, index=True)
+    endpoint       = Column(String(200), nullable=False)
+    request_hash   = Column(String(64), nullable=True)
+    response_json  = Column(Text, nullable=True)
+    created_by     = Column(String(80), default="system")
+    created_at     = Column(DateTime, default=datetime.utcnow)
+
+
+class WarehouseSalesFact(Base):
+    __tablename__  = "warehouse_sales_facts"
+
+    id             = Column(Integer, primary_key=True, autoincrement=True)
+    transaction_date = Column(Date, nullable=False)
+    voucher_id     = Column(Integer, ForeignKey("vouchers.id"), nullable=False)
+    ledger_id      = Column(Integer, ForeignKey("ledgers.id"), nullable=False)
+    item_id        = Column(Integer, ForeignKey("stock_items.id"), nullable=True)
+    quantity       = Column(Numeric(18, 3), default=0.0)
+    amount         = Column(Numeric(18, 2), default=0.0)
+    updated_at     = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at     = Column(DateTime, default=datetime.utcnow)
+
+
+class DimensionCustomer(Base):
+    __tablename__ = "dim_customer"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    customer_name = Column(String(150), nullable=False)
+    country = Column(String(80), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class DimensionProduct(Base):
+    __tablename__ = "dim_product"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    product_name = Column(String(150), nullable=False)
+    sku = Column(String(50), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class DimensionTime(Base):
+    __tablename__ = "dim_time"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    date = Column(Date, nullable=False, unique=True)
+    year = Column(Integer, nullable=False)
+    month = Column(Integer, nullable=False)
+    day = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class WorkflowDefinition(Base):
+    __tablename__ = "workflow_definitions"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    name          = Column(String(150), nullable=False)
+    description   = Column(Text, nullable=True)
+    rule_json     = Column(Text, nullable=True)
+    created_by    = Column(String(50), default="system")
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class WorkflowInstance(Base):
+    __tablename__ = "workflow_instances"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    definition_id = Column(Integer, ForeignKey("workflow_definitions.id"), nullable=False)
+    status        = Column(String(20), default="PENDING")
+    context_json  = Column(Text, nullable=True)
+    started_at    = Column(DateTime, default=datetime.utcnow)
+    completed_at  = Column(DateTime, nullable=True)
+
+    definition    = relationship("WorkflowDefinition")
+
+
+class Task(Base):
+    __tablename__ = "tasks"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    instance_id   = Column(Integer, ForeignKey("workflow_instances.id"), nullable=False)
+    title         = Column(String(200), nullable=False)
+    description   = Column(Text, nullable=True)
+    assigned_to   = Column(String(80), nullable=True)
+    due_date      = Column(DateTime, nullable=True)
+    status        = Column(String(20), default="PENDING")
+    priority      = Column(String(20), default="NORMAL")
+    escalated     = Column(Boolean, default=False)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+    updated_at    = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    instance      = relationship("WorkflowInstance")
+
+
+class IntegrationLog(Base):
+    __tablename__ = "integration_logs"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    source        = Column(String(100), nullable=False)
+    event_type    = Column(String(100), nullable=False)
+    request_body  = Column(Text, nullable=True)
+    response_body = Column(Text, nullable=True)
+    status_code   = Column(Integer, nullable=True)
+    latency_ms    = Column(Numeric(18,3), default=0)
+    executed_at   = Column(DateTime, default=datetime.utcnow)
+
+
+class IntegrationToken(Base):
+    __tablename__ = "integration_tokens"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    client_id     = Column(String(100), nullable=False)
+    access_token  = Column(Text, nullable=False)
+    expires_at    = Column(Integer, nullable=False)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class DeadLetter(Base):
+    __tablename__ = "dead_letters"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    payload       = Column(Text, nullable=False)
+    status        = Column(String(50), default="PENDING")
+    error_message = Column(Text, nullable=True)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class Budget(Base):
+    __tablename__ = "budgets"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    cost_centre   = Column(String(50), nullable=False)
+    amount        = Column(Numeric(18,2), default=0.0)
+    fiscal_year   = Column(String(10), nullable=False)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class SalesQuote(Base):
+    __tablename__ = "sales_quotes"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    customer_id   = Column(Integer, ForeignKey("parties.id"), nullable=False)
+    total         = Column(Numeric(18,2), default=0.0)
+    status        = Column(String(20), default="DRAFT")
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class SalesOrder(Base):
+    __tablename__ = "sales_orders"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    quote_id      = Column(Integer, ForeignKey("sales_quotes.id"), nullable=True)
+    customer_id   = Column(Integer, ForeignKey("parties.id"), nullable=False)
+    amount        = Column(Numeric(18,2), default=0.0)
+    status        = Column(String(20), default="NEW")
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class TransferOrder(Base):
+    __tablename__ = "transfer_orders"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    source_warehouse = Column(String(100), nullable=False)
+    target_warehouse = Column(String(100), nullable=False)
+    item_id       = Column(Integer, ForeignKey("stock_items.id"), nullable=False)
+    quantity      = Column(Numeric(18,3), default=0.0)
+    status        = Column(String(20), default="PENDING")
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class CycleCount(Base):
+    __tablename__ = "cycle_counts"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    item_id       = Column(Integer, ForeignKey("stock_items.id"), nullable=False)
+    scheduled_date= Column(Date, nullable=False)
+    counted_quantity = Column(Numeric(18,3), nullable=True)
+    status        = Column(String(20), default="SCHEDULED")
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class LeaveRequest(Base):
+    __tablename__ = "leave_requests"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    employee_id   = Column(Integer, ForeignKey("employees.id"), nullable=False)
+    from_date     = Column(Date, nullable=False)
+    to_date       = Column(Date, nullable=False)
+    reason        = Column(Text, nullable=True)
+    status        = Column(String(20), default="PENDING")
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class PerformanceReview(Base):
+    __tablename__ = "performance_reviews"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    employee_id   = Column(Integer, ForeignKey("employees.id"), nullable=False)
+    score         = Column(Numeric(5,2), nullable=False)
+    comments      = Column(Text, nullable=True)
+    status        = Column(String(20), default="PENDING")
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class WorkCenterLoad(Base):
+    __tablename__ = "work_center_loads"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    workcenter_id = Column(Integer, nullable=False)
+    load          = Column(Numeric(5,2), default=0.0)
+    updated_at    = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class InspectionChecklist(Base):
+    __tablename__ = "inspection_checklists"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    work_order_id = Column(Integer, ForeignKey("work_orders.id"), nullable=False)
+    results       = Column(Text, nullable=True)
+    status        = Column(String(20), default="PENDING")
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class ManufacturingBOM(Base):
+    __tablename__ = "manufacturing_bom"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    code          = Column(String(50), unique=True, nullable=False)
+    name          = Column(String(150), nullable=False)
+    product_id    = Column(Integer, ForeignKey("stock_items.id"), nullable=False)
+    components_json = Column(Text, nullable=False)
+    is_active     = Column(Boolean, default=True)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+
+class WorkOrder(Base):
+    __tablename__ = "work_orders"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    work_order_no = Column(String(50), unique=True, nullable=False)
+    bom_id        = Column(Integer, ForeignKey("manufacturing_bom.id"), nullable=False)
+    quantity      = Column(Numeric(18, 3), default=0.0)
+    status        = Column(String(30), default="OPEN")
+    due_date      = Column(Date, nullable=True)
+    started_at    = Column(DateTime, nullable=True)
+    completed_at  = Column(DateTime, nullable=True)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+
+    bom           = relationship("ManufacturingBOM")
+
 
 class SystemConfig(Base):
     __tablename__ = "system_config"
@@ -952,6 +1233,8 @@ ALL_TABLES = [
     "email_templates", "sms_templates",
     "workflow_rules", "workflow_actions", "workflow_logs",
     "webhooks", "user_preferences", "approval_rules",
+    "idempotency_keys", "warehouse_sales_facts", "workflow_definitions", "workflow_instances", "tasks", "integration_logs",
+    "manufacturing_bom", "work_orders",
 ]
 
 if __name__ == "__main__":

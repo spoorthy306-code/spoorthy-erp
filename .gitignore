@@ -1,56 +1,88 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
+*$py.class
+*.so
 .Python
-*.egg
-*.egg-info/
-dist/
+env/
+venv/
+ENV/
 build/
-eggs/
-parts/
-var/
-sdist/
 develop-eggs/
-.installed.cfg
+dist/
+downloads/
+eggs/
+.eggs/
 lib/
 lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.test
+.env.test.*
 
 # Virtual environments
-venv/
-env/
-.env/
-ENV/
+.venv*/
 
-# Environment variables
-.env
-*.env
+# Logs
+logs/
+*.log
+*.pid
 
-# Database files
+# Database
 *.db
 *.sqlite
 *.sqlite3
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store
+# Reports
+reports/
+*.pdf
+*.xlsx
 
-# Logs
-*.log
-logs/
+# Secrets
+secrets/
+*.key
+*.pem
+*.crt
 
-# Sensitive data - KYC docs, employee records, financial documents
-data/
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
 
-# Claude Code settings
-.claude/
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
 
-# Railway
-.railway/
+# Celery
+celerybeat-schedule
+celerybeat.pid
 
-# Streamlit
-.streamlit/secrets.toml
+# Uploads
+uploads/
+media/

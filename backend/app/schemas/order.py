@@ -1,0 +1,61 @@
+from datetime import datetime
+from enum import Enum
+from pydantic import BaseModel, Field
+
+
+class OrderStatus(str, Enum):
+    pending = "pending"
+    completed = "completed"
+    cancelled = "cancelled"
+
+
+class OrderBase(BaseModel):
+    customer_id: int
+    quantity: float = Field(default=1.0, gt=0)
+    unit_price: float = Field(default=0.0, ge=0)
+    item_description: str | None = None
+    hsn_code: str | None = None
+    status: OrderStatus = OrderStatus.pending
+    notes: str | None = None
+    unit_id: int | None = None
+    tax_id: int | None = None
+
+
+class OrderCreate(OrderBase):
+    pass
+
+
+class OrderUpdate(BaseModel):
+    customer_id: int | None = None
+    quantity: float | None = Field(default=None, gt=0)
+    unit_price: float | None = Field(default=None, ge=0)
+    item_description: str | None = None
+    hsn_code: str | None = None
+    status: OrderStatus | None = None
+    notes: str | None = None
+    unit_id: int | None = None
+    tax_id: int | None = None
+
+
+class OrderRead(OrderBase):
+    id: int
+    subtotal: float
+    tax_amount: float
+    total_amount: float
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class OrderRead(OrderBase):
+    id: int
+    subtotal: float
+    tax_amount: float
+    total_amount: float
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

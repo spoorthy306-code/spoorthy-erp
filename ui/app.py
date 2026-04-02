@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 
-st.set_page_config(page_title="Spoorthy Quantum ERP", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Spoorthy ERP", layout="wide", initial_sidebar_state="expanded")
 
 if 'logged_in' not in st.session_state: 
     st.session_state.logged_in = False
@@ -21,7 +21,7 @@ def fake_api_data():
     }
 
 if not st.session_state.logged_in:
-    st.title("🔐 Spoorthy Quantum ERP")
+    st.title("🔐 Spoorthy ERP")
     col1, col2 = st.columns([1, 2])
     with col1:
         username = st.text_input("👤 Username")

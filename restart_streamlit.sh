@@ -11,7 +11,7 @@ nohup streamlit run /home/a_anil/spoorthy_complete/app.py \
 sleep 7
 STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8501/healthz)
 if [ "$STATUS" = "200" ]; then
-  echo "✅ SPOORTHY ERP running at http://localhost:8501  (PID=$!)"
+  echo "✅ Spoorthy ERP running at http://localhost:8501  (PID=$!)"
 else
   echo "❌ App failed to start — check /tmp/streamlit.log"
   tail -20 /tmp/streamlit.log

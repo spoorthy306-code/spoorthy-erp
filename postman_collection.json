@@ -1,0 +1,29 @@
+{
+  "info": {
+    "name": "Spoorthy ERP API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": { "method": "GET", "url": "http://localhost:8000/health" }
+    },
+    {
+      "name": "Create Inventory Product",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8000/inventory/products",
+        "body": { "mode": "raw", "raw": "{\"code\":\"PRD001\",\"name\":\"Item\",\"current_stock\":10}" }
+      }
+    },
+    {
+      "name": "Post Ledger Entry",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8000/ledger/post-entry",
+        "header": [{"key":"Idempotency-Key","value":"p1"}],
+        "body": {"mode":"raw","raw":"{\"voucher_no\":\"TEST\",\"lines\":[{\"ledger_code\":\"CASH01\",\"debit\":100,\"credit\":0},{\"ledger_code\":\"BANK01\",\"debit\":0,\"credit\":100}]}"}
+      }
+    }
+  ]
+}

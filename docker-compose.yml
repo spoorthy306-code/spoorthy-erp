@@ -1,0 +1,249 @@
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15
+    container_name: spoorthy-erp-db
+    environment:
+      POSTGRES_DB: spoorthy_erp
+      POSTGRES_USER: spoorthy_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-spoorthy_pass}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # schema.sql and seed.sql are optional init scripts — uncomment when files exist
+      # - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      # - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - spoorthy-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spoorthy_user -d spoorthy_erp"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: spoorthy-erp-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - spoorthy-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # FastAPI Backend
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: spoorthy-erp-api
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+asyncpg://spoorthy_user:${DB_PASSWORD:-spoorthy_pass}@db:5432/spoorthy_erp
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env}
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - GSTN_API_URL=${GSTN_API_URL}
+      - GSTN_CLIENT_ID=${GSTN_CLIENT_ID}
+      - GSTN_CLIENT_SECRET=${GSTN_CLIENT_SECRET}
+      - RBI_FX_API_KEY=${RBI_FX_API_KEY}
+      - QUANTUM_ENGINE_URL=${QUANTUM_ENGINE_URL}
+      - PROMETHEUS_MULTIPROC_DIR=/tmp
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+      - ./exports:/app/exports
+      - ./backups:/app/backups
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - spoorthy-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./ui/react
+      dockerfile: Dockerfile
+    container_name: spoorthy-erp-frontend
+    environment:
+      - REACT_APP_API_BASE_URL=http://api:8000
+      - REACT_APP_WS_URL=ws://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    networks:
+      - spoorthy-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Celery Worker for background tasks
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: spoorthy-erp-celery-worker
+    command: celery -A backend.app.tasks worker --loglevel=info --concurrency=4
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+asyncpg://spoorthy_user:${DB_PASSWORD:-spoorthy_pass}@db:5432/spoorthy_erp
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env}
+      - GSTN_API_URL=${GSTN_API_URL}
+      - GSTN_CLIENT_ID=${GSTN_CLIENT_ID}
+      - GSTN_CLIENT_SECRET=${GSTN_CLIENT_SECRET}
+      - RBI_FX_API_KEY=${RBI_FX_API_KEY}
+      - QUANTUM_ENGINE_URL=${QUANTUM_ENGINE_URL}
+    volumes:
+      - ./logs:/app/logs
+      - ./exports:/app/exports
+    depends_on:
+      - db
+      - redis
+      - api
+    networks:
+      - spoorthy-network
+    restart: unless-stopped
+
+  # Celery Beat for scheduled tasks
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: spoorthy-erp-celery-beat
+    command: celery -A backend.app.tasks beat --loglevel=info
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+asyncpg://spoorthy_user:${DB_PASSWORD:-spoorthy_pass}@db:5432/spoorthy_erp
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env}
+    depends_on:
+      - db
+      - redis
+    networks:
+      - spoorthy-network
+    restart: unless-stopped
+
+  # Prometheus for metrics collection
+  prometheus:
+    build:
+      context: ./monitoring
+      dockerfile: Dockerfile.prometheus
+    container_name: spoorthy-erp-prometheus
+    volumes:
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - spoorthy-network
+    restart: unless-stopped
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: spoorthy-erp-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - spoorthy-network
+    restart: unless-stopped
+
+  # Alertmanager for alerting
+  alertmanager:
+    build:
+      context: ./monitoring
+      dockerfile: Dockerfile.alertmanager
+    container_name: spoorthy-erp-alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - "9093:9093"
+    networks:
+      - spoorthy-network
+    restart: unless-stopped
+
+  # Nginx reverse proxy
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: spoorthy-erp-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - frontend
+      - api
+    networks:
+      - spoorthy-network
+    restart: unless-stopped
+
+  # Quantum Engine Simulator (for development/testing)
+  quantum-engine:
+    build:
+      context: ./quantum-engine
+      dockerfile: Dockerfile
+    container_name: spoorthy-erp-quantum-engine
+    environment:
+      - QUANTUM_SIMULATION_MODE=true
+      - MAX_QUBITS=512
+    ports:
+      - "8080:8080"
+    networks:
+      - spoorthy-network
+    profiles:
+      - dev
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  spoorthy-network:
+    driver: bridge

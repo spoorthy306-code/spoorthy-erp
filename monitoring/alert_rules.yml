@@ -1,0 +1,144 @@
+groups:
+  - name: spoorthy-alerts
+    rules:
+      # API Health Alerts
+      - alert: APIDown
+        expr: up{job="spoorthy-api"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API service is down"
+          description: "Spoorthy API has been down for more than 5 minutes."
+
+      - alert: APIHighErrorRate
+        expr: rate(http_requests_total{job="spoorthy-api", status=~"5.."}[5m]) / rate(http_requests_total{job="spoorthy-api"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API error rate"
+          description: "API error rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+
+      # Database Alerts
+      - alert: DatabaseDown
+        expr: up{job="spoorthy-db"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database is down"
+          description: "PostgreSQL database has been down for more than 5 minutes."
+
+      - alert: DatabaseHighConnections
+        expr: pg_stat_activity_count{datname="spoorthy_erp"} > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connections"
+          description: "Database has {{ $value }} active connections."
+
+      # Quantum Engine Alerts
+      - alert: QuantumEngineDown
+        expr: up{job="spoorthy-quantum-engine"} == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Quantum engine is down"
+          description: "Quantum engine has been down for more than 10 minutes."
+
+      - alert: QuantumJobFailureRate
+        expr: rate(quantum_job_failures_total[5m]) / rate(quantum_jobs_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High quantum job failure rate"
+          description: "Quantum job failure rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+
+      # Financial Compliance Alerts
+      - alert: GSTFilingOverdue
+        expr: gst_filing_overdue_days > 0
+        for: 1h
+        labels:
+          severity: critical
+        annotations:
+          summary: "GST filing overdue"
+          description: "GST filing is overdue by {{ $value }} days."
+
+      - alert: TaxComplianceIssue
+        expr: tax_compliance_violations_total > 0
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tax compliance violation detected"
+          description: "{{ $value }} tax compliance violations detected."
+
+      # System Resource Alerts
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | printf \"%.2f\" }}%."
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value | printf \"%.2f\" }}%."
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 15
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is below 15% on {{ $labels.device }}."
+
+      # Business Logic Alerts
+      - alert: ReconciliationMismatch
+        expr: reconciliation_mismatch_amount > 10000
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large reconciliation mismatch"
+          description: "Reconciliation mismatch of ₹{{ $value | printf \"%.2f\" }} detected."
+
+      - alert: BudgetVarianceHigh
+        expr: abs(budget_variance_percentage) > 20
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "High budget variance"
+          description: "Budget variance is {{ $value | printf \"%.2f\" }}%."
+
+      # Security Alerts
+      - alert: FailedLoginAttempts
+        expr: increase(failed_login_attempts_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Multiple failed login attempts"
+          description: "{{ $value }} failed login attempts in the last 5 minutes."
+
+      - alert: UnauthorizedAccess
+        expr: increase(unauthorized_access_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Unauthorized access attempts"
+          description: "{{ $value }} unauthorized access attempts in the last 5 minutes."

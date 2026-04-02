@@ -1,54 +1,26 @@
-import streamlit as st
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-st.set_page_config(page_title="SPOORTHY ERP", layout="wide")
-
-try:
-    from db.schema import SessionLocal
-    from db.seed import seed_all
-    init_db = lambda: seed_all()
-    init_db()
-    db = SessionLocal()
-except:
-    st.warning("🔧 Backend files missing. Run 'python main.py' first.")
-
-st.title("🕉️ SPOORTHY Quantum ERP — 295 Modules LIVE")
-st.success("✅ Voucher Entry | PDF OCR | Trial Balance | GST Reports")
-
-col1, col2, col3 = st.columns(3)
-col1.metric("Portfolio", "₹1.25 Cr", "+12.3%")
-col2.metric("Temple Revenue", "₹5.2L/mo", "+45%")
-col3.metric("Vouchers", "127", "+23")
-
-if st.button("🚀 Create Sales Invoice"):
-    st.success("SPRY/SINV/2025-26/000001 POSTED")
-
-st.info("📁 Files ready. Run: python main.py → streamlit run ui/app.py")
-
-"""
-SPOORTHY ERP
-ui/app.py — Complete Streamlit Web Application
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Run with:  streamlit run ui/app.py
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Pages:
-  1. Dashboard          — KPI cards, charts
-  2. Voucher Entry      — All 16 voucher types
-  3. PDF / DMS Upload   — Upload invoice, auto-extract
-  4. Masters            — Ledgers, Parties, Stock Items
-  5. Reports            — Trial Balance, P&L, BS, GST
-  6. Bank Reconciliation
-  7. Fixed Assets
-  8. Payroll
-"""
+# ════════════════════════════════════════════════════════════════════════════════
+# SPOORTHY ERP
+# ui/app.py — Complete Streamlit Web Application
+# ════════════════════════════════════════════════════════════════════════════════
+# Run with:  streamlit run ui/app.py
+# ════════════════════════════════════════════════════════════════════════════════
+# Pages:
+#   1. Dashboard          — KPI cards, charts
+#   2. Voucher Entry      — All 16 voucher types
+#   3. PDF / DMS Upload   — Upload invoice, auto-extract
+#   4. Masters            — Ledgers, Parties, Stock Items
+#   5. Reports            — Trial Balance, P&L, BS, GST
+#   6. Bank Reconciliation
+#   7. Fixed Assets
+#   8. Payroll
+# ════════════════════════════════════════════════════════════════════════════════
 
 import sys, os, json, io
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import streamlit as st
 import pandas as pd
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from db.schema  import SessionLocal, Ledger, AccountGroup, Voucher, Transaction, \
                         VoucherType, Party, Document, StockItem, StockUnit, \
@@ -58,8 +30,46 @@ from db.seed    import seed_all
 from quantum_ui   import render_quantum_accounting, render_quantum_finance
 from settings_ui  import render_settings_page
 from payroll_ui   import render_payroll_page
-from pdf_invoice  import generate_invoice_pdf
+
+# backend with reusable invoice generation may rely on backend models and heavy imports.
+# Import safely to avoid total app failure in development or when package dependencies are incomplete.
+try:
+    from backend.app.services.invoice_service import InvoiceService
+except Exception as _exc:
+    InvoiceService = None
+    print(f"⚠️ Warning: backend InvoiceService import failed: {_exc}")
+
+try:
+    from backend.app.models.order import Order, OrderStatus
+except Exception as _exc:
+    Order = None
+    OrderStatus = None
+    print(f"⚠️ Warning: backend Order model import failed: {_exc}")
+
+try:
+    from backend.app.models.company import CompanyProfile
+except Exception as _exc:
+    CompanyProfile = None
+    print(f"⚠️ Warning: backend CompanyProfile model import failed: {_exc}")
+
 import hashlib
+from typing import Any
+
+
+def _f(v: Any) -> float:
+    """Cast any SQLAlchemy Numeric/Decimal column value to float; returns 0.0 for None."""
+    return 0.0 if v is None else float(v)
+
+
+def generate_invoice_pdf(data: dict) -> bytes:
+    """Fallback invoice PDF — returns a minimal valid PDF with placeholder content."""
+    out = io.BytesIO()
+    out.write(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n")
+    out.write(b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n")
+    out.write(b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>\nendobj\n")
+    out.write(b"4 0 obj\n<< /Length 44 >>\nstream\nBT /F1 24 Tf 72 720 Td (Invoice PDF placeholder) Tj ET\nendstream\nendobj\n")
+    out.write(b"xref\n0 5\n0000000000 65535 f \n0000000010 00000 n \n0000000061 00000 n \n0000000118 00000 n \n0000000191 00000 n \ntrailer\n<< /Root 1 0 R /Size 5 >>\nstartxref\n268\n%%EOF")
+    return out.getvalue()
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -286,7 +296,12 @@ st.markdown("""
 # ── Helpers ───────────────────────────────────────────────────────────────────
 @st.cache_resource
 def init_db():
-    seed_all()
+    try:
+        seed_all()
+    except Exception as e:
+        # On first run, schema may be stale or incomplete; skip seed failure to keep UI available.
+        st.warning(f"⚠️ Database seed error (non-blocking): {e}")
+        print(f"⚠️ Database seed error (non-blocking): {e}")
     return True
 
 init_db()
@@ -332,9 +347,9 @@ def get_ledger_balance(db, ledger_code: str) -> float:
         Transaction.ledger_id == led.id,
         Voucher.status == "POSTED"
     ).all()
-    dr = sum(float(t.debit  or 0) for t in txns)
-    cr = sum(float(t.credit or 0) for t in txns)
-    opening = float(led.opening_balance or 0)
+    dr = sum(_f(t.debit) for t in txns)
+    cr = sum(_f(t.credit) for t in txns)
+    opening = _f(led.opening_balance)
     if led.nature == "Dr":
         return opening + dr - cr
     else:
@@ -407,7 +422,7 @@ def lookup_gstin(gstin: str, api_key: str = "") -> dict:
             resp = _req.get(url, headers={
                 "X-APISETU-APIKEY": api_key,
                 "Accept": "application/json",
-            }, timeout=8, verify=False)
+            }, timeout=8, verify=True)
             if resp.status_code == 200:
                 data = resp.json()
                 addr = data.get("pradr", {}).get("addr", {})
@@ -617,17 +632,23 @@ if "Dashboard" in page:
             txns = db.query(Transaction).join(Voucher).filter(
                 Transaction.ledger_id == led.id, Voucher.status == "POSTED"
             ).all()
-            dr = sum(float(t.debit  or 0) for t in txns)
-            cr = sum(float(t.credit or 0) for t in txns)
-            ob_dr = float(led.opening_balance or 0) if led.opening_type == "Dr" else 0
-            ob_cr = float(led.opening_balance or 0) if led.opening_type == "Cr" else 0
+            dr = sum(_f(t.debit) for t in txns)
+            cr = sum(_f(t.credit) for t in txns)
+            ob_dr = _f(led.opening_balance) if str(led.opening_type).upper() == "DR" else 0.0
+            ob_cr = _f(led.opening_balance) if str(led.opening_type).upper() == "CR" else 0.0
             bal = abs((dr + ob_dr) - (cr + ob_cr))
             grp = db.query(AccountGroup).filter_by(id=led.group_id).first()
-            if not grp: continue
-            if grp.group_type == "INCOME":   total_income   += bal
-            if grp.group_type == "EXPENSE":  total_expense  += bal
-            if led.code == "IE001":          total_salaries  = bal
-            if led.code == "PUR001":         total_purchases = bal
+            if grp is None:
+                continue
+            grp_type = str(grp.group_type or "").upper()
+            if grp_type == "INCOME":
+                total_income += bal
+            if grp_type == "EXPENSE":
+                total_expense += bal
+            if str(led.code) == "IE001":
+                total_salaries = bal
+            if str(led.code) == "PUR001":
+                total_purchases = bal
 
         net_profit    = total_income - total_expense
         gross_profit  = total_income - total_purchases
@@ -689,10 +710,18 @@ if "Dashboard" in page:
                         mkey = vd.strftime("%b") + "-" + vd.strftime("%y")
                     else:
                         continue
-                    if mkey not in rev_by_month: continue
-                    amt = float(t.credit or 0) if grp.group_type == "INCOME" else float(t.debit or 0)
-                    if grp.group_type == "INCOME": rev_by_month[mkey]  += amt
-                    else:                          exp_by_month[mkey]  += amt
+                    if mkey not in rev_by_month:
+                        continue
+                    grp_type = str(grp.group_type or "").upper()
+                    credit_amount = _f(t.credit)
+                    debit_amount = _f(t.debit)
+
+                    if grp_type == "INCOME":
+                        amt = credit_amount
+                        rev_by_month[mkey] += amt
+                    else:
+                        amt = debit_amount
+                        exp_by_month[mkey] += amt
 
             fig_bar = go.Figure()
             fig_bar.add_trace(go.Bar(
@@ -722,12 +751,14 @@ if "Dashboard" in page:
             color_palette = ["#3b82f6","#f87171","#fbbf24","#34d399","#a78bfa","#fb923c","#60a5fa"]
             for i, led in enumerate(all_leds):
                 grp = db.query(AccountGroup).filter_by(id=led.group_id).first()
-                if not grp or grp.group_type != "EXPENSE": continue
+                grp_type = str(grp.group_type or "").upper() if grp else ""
+                if grp is None or grp_type != "EXPENSE":
+                    continue
                 txns = db.query(Transaction).join(Voucher).filter(
                     Transaction.ledger_id == led.id, Voucher.status == "POSTED"
                 ).all()
-                amt = sum(float(t.debit or 0) for t in txns)
-                if amt > 0:
+                amt = sum(_f(t.debit) for t in txns)
+                if amt > 0.0:
                     exp_labels.append(led.name)
                     exp_values.append(amt)
                     exp_colors.append(color_palette[len(exp_labels) % len(color_palette)])
@@ -785,8 +816,8 @@ if "Dashboard" in page:
                           else "Payroll" if "Payroll" in narr or "payroll" in narr \
                           else "Asset Purchase" if "Asset" in narr or "Computers" in narr \
                           else "Other"
-                    dr = float(t.debit  or 0)
-                    cr = float(t.credit or 0)
+                    dr = _f(t.debit)
+                    cr = _f(t.credit)
                     if dr: inflows[key]  = inflows.get(key, 0)  + dr
                     if cr: outflows[key] = outflows.get(key, 0) + cr
 
@@ -865,7 +896,7 @@ if "Dashboard" in page:
                 rows = []
                 for v in recent:
                     vt = db.query(VoucherType).filter_by(id=v.voucher_type_id).first()
-                    tag = vt.code if vt else "JV"
+                    tag = str(vt.code) if vt and vt.code is not None else "JV"
                     badge_color = {
                         "SINV":"#dcfce7","PINV":"#fef9c3","RV":"#dbeafe",
                         "PV":"#fee2e2","PYRL":"#f3e8ff","JV":"#f1f5f9"
@@ -889,7 +920,7 @@ if "Dashboard" in page:
 
             if payroll_vouchers:
                 pr_months = [v.narration.replace("Payroll — ","") for v in payroll_vouchers]
-                pr_amounts = [float(v.total_amount) for v in payroll_vouchers]
+                pr_amounts = [_f(v.total_amount) for v in payroll_vouchers]
 
                 fig_pr = go.Figure(go.Bar(
                     x=pr_months, y=pr_amounts,
@@ -1302,8 +1333,8 @@ elif "Masters" in page:
             ledgers = db.query(Ledger).join(AccountGroup).order_by(AccountGroup.code, Ledger.code).all()
             if ledgers:
                 rows = [{"Code": l.code, "Name": l.name, "Group": l.group.name if l.group else "",
-                          "Nature": l.nature, "Tax?": "✓" if l.is_tax_ledger else "",
-                          "Bank?": "✓" if l.is_bank else "", "Cash?": "✓" if l.is_cash else ""}
+                          "Nature": l.nature, "Tax?": "✓" if bool(l.is_tax_ledger) else "",
+                          "Bank?": "✓" if bool(l.is_bank) else "", "Cash?": "✓" if bool(l.is_cash) else ""}
                          for l in ledgers]
                 st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True, height=500)
 
@@ -1363,7 +1394,7 @@ elif "Masters" in page:
                 # Get API key from SystemConfig if set
                 try:
                     cfg = db.query(SystemConfig).filter_by(key="GST_API_KEY").first()
-                    api_key = cfg.value if cfg and cfg.value not in ("", "YOUR_API_KEY") else ""
+                    api_key = str(cfg.value).strip() if cfg and cfg.value not in ("", "YOUR_API_KEY") else ""
                 except Exception:
                     api_key = ""
 
@@ -1538,6 +1569,7 @@ elif "Reports" in page:
             "Sales Register",
             "Purchase Register",
             "Print Invoice / PDF",
+            "Company Profile",
             "Ledger Statement",
             "Voucher Register",
             "AR Aging",
@@ -1550,7 +1582,9 @@ elif "Reports" in page:
         with col2:
             to_date   = st.date_input("To Date",   value=date.today(), format="DD/MM/YYYY")
 
-        if st.button("🔍 Generate Report", use_container_width=True):
+        generate_report = st.button("🔍 Generate Report", use_container_width=True)
+
+        if report_type in ("Print Invoice / PDF", "Company Profile") or generate_report:
 
             # Helper: get all ledger balances
             def ledger_balances():
@@ -1563,8 +1597,8 @@ elif "Reports" in page:
                         Voucher.voucher_date <= to_date,
                         Voucher.status == "POSTED"
                     ).all()
-                    dr = sum(float(t.debit  or 0) for t in txns) + (float(led.opening_balance or 0) if led.opening_type == "Dr" else 0)
-                    cr = sum(float(t.credit or 0) for t in txns) + (float(led.opening_balance or 0) if led.opening_type == "Cr" else 0)
+                    dr = sum(_f(t.debit) for t in txns) + (_f(led.opening_balance) if led.opening_type == "Dr" else 0)
+                    cr = sum(_f(t.credit) for t in txns) + (_f(led.opening_balance) if led.opening_type == "Cr" else 0)
                     net= dr - cr
                     if net != 0:
                         grp = db.query(AccountGroup).filter_by(id=led.group_id).first()
@@ -1667,6 +1701,176 @@ elif "Reports" in page:
                                      use_container_width=True, hide_index=True)
                         st.metric("Total Liabilities + Equity", fmt_inr(total_liab))
 
+            elif report_type == "Print Invoice / PDF":
+                st.markdown("### Print Invoice / PDF")
+
+                if CompanyProfile is None:
+                    st.warning("Company profile model unavailable (backend import failed). Some fields will be hidden.")
+
+                company = None
+                if CompanyProfile is not None:
+                    company = db.query(CompanyProfile).first()
+
+                if company:
+                    st.caption(f"Invoice header: {company.name} | GSTIN: {company.gstin or 'Not set'}")
+                else:
+                    st.warning("Company profile is not configured yet. PDF will use fallback header values.")
+
+                recent_orders = []
+                if Order is not None:
+                    recent_orders = db.query(Order).order_by(Order.created_at.desc()).limit(10).all()
+                else:
+                    st.warning("Order model unavailable (backend import failed). Invoice report is disabled.")
+                default_order_id = recent_orders[0].id if recent_orders else 1
+                order_id = st.number_input("Order ID", value=default_order_id, min_value=1, step=1)
+
+                selected_order = None
+                if Order is not None:
+                    selected_order = db.query(Order).filter_by(id=order_id).first()
+
+                if selected_order:
+                    status_value = selected_order.status.value if hasattr(selected_order.status, "value") else str(selected_order.status)
+                    info_cols = st.columns(4)
+                    info_cols[0].metric("Status", status_value)
+                    info_cols[1].metric("Subtotal", fmt_inr(_f(selected_order.subtotal)))
+                    info_cols[2].metric("Tax", fmt_inr(_f(selected_order.tax_amount)))
+                    info_cols[3].metric("Total", fmt_inr(_f(selected_order.total_amount)))
+                    if OrderStatus is not None and selected_order.status != OrderStatus.completed:
+                        st.warning("This order is not completed yet. You can still generate a draft invoice, but journal posting is normally tied to completed orders.")
+                else:
+                    st.info("Select a valid order ID to preview and download its invoice.")
+
+                if InvoiceService is None:
+                    st.warning("Invoice generation service unavailable (backend module import failed). Install backend dependencies and restart.")
+                elif st.button("Generate Invoice PDF", use_container_width=True):
+                    if not selected_order:
+                        st.error("Order not found")
+                    else:
+                        try:
+                            pdf_path = InvoiceService.generate_pdf(selected_order, filename=f"Invoice_{order_id}.pdf")
+                            st.success(f"Invoice generated: {pdf_path}")
+                            with open(pdf_path, "rb") as f:
+                                st.session_state["current_invoice_pdf_bytes"] = f.read()
+                            st.session_state["current_invoice_pdf_name"] = f"Invoice_{order_id}.pdf"
+                        except Exception as e:
+                            st.error(f"Invoice generation failed: {e}")
+
+                if st.session_state.get("current_invoice_pdf_bytes"):
+                    st.download_button(
+                        label="Download Invoice PDF",
+                        data=st.session_state["current_invoice_pdf_bytes"],
+                        file_name=st.session_state.get("current_invoice_pdf_name", f"Invoice_{order_id}.pdf"),
+                        mime="application/pdf",
+                        use_container_width=True,
+                    )
+
+                st.markdown("#### Recent Orders")
+                if recent_orders:
+                    order_rows = []
+                    for order in recent_orders:
+                        order_rows.append({
+                            "Order ID": order.id,
+                            "Customer": order.customer_id,
+                            "Description": order.item_description or "-",
+                            "HSN": order.hsn_code or "-",
+                            "Status": order.status.value if hasattr(order.status, "value") else str(order.status),
+                            "Total": round(_f(order.total_amount), 2),
+                            "Created": order.created_at.strftime("%Y-%m-%d %H:%M"),
+                        })
+                    st.dataframe(pd.DataFrame(order_rows), use_container_width=True, hide_index=True)
+
+                    quick_order_id = st.selectbox(
+                        "Quick Download Recent Invoice",
+                        options=[order.id for order in recent_orders],
+                        index=0,
+                    )
+                    if st.button("Download Selected Recent Invoice"):
+                        quick_order = db.query(Order).filter_by(id=quick_order_id).first()
+                        if quick_order:
+                            pdf_path = InvoiceService.generate_pdf(quick_order, filename=f"Invoice_{quick_order_id}.pdf")
+                            with open(pdf_path, "rb") as f:
+                                st.session_state["recent_invoice_pdf_bytes"] = f.read()
+                            st.session_state["recent_invoice_pdf_name"] = f"Invoice_{quick_order_id}.pdf"
+
+                    if st.session_state.get("recent_invoice_pdf_bytes"):
+                        st.download_button(
+                            label="Download Selected Recent Invoice PDF",
+                            data=st.session_state["recent_invoice_pdf_bytes"],
+                            file_name=st.session_state.get("recent_invoice_pdf_name", f"Invoice_{quick_order_id}.pdf"),
+                            mime="application/pdf",
+                            key="download_recent_invoice_pdf",
+                            use_container_width=True,
+                        )
+                else:
+                    st.info("No orders available yet.")
+
+            elif report_type == "Company Profile":
+                st.markdown("### Company Profile")
+
+                if CompanyProfile is None:
+                    st.error("CompanyProfile model not available; backend model import failed.")
+                    CompanyProfile = None
+
+                profile = None
+                if CompanyProfile is not None:
+                    profile = db.query(CompanyProfile).first()
+                with st.form("company_profile_form"):
+                    name = st.text_input("Company Name", value=profile.name if profile else "Spoorthy Solutions Pvt Ltd")
+                    address = st.text_area("Address", value=profile.address if profile else "Plot 42, Tech Park, Hyderabad, 500081")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        phone = st.text_input("Phone", value=profile.phone if profile else "+91 98765 43210")
+                        email = st.text_input("Email", value=profile.email if profile else "info@spoorthy.erp")
+                        gstin = st.text_input("GSTIN", value=profile.gstin if profile else "36ABCDE1234F1Z5")
+                    with col2:
+                        website = st.text_input("Website", value=profile.website if profile else "")
+                        logo_path = st.text_input("Logo Path", value=profile.logo_path if profile else "static/logo.png")
+                        bank_details = st.text_area(
+                            "Bank Details",
+                            value=profile.bank_details if profile else "Bank: ICICI Bank, A/c: 1234567890, IFSC: ICIC0000001",
+                        )
+                    save_profile = st.form_submit_button("Save Company Profile", use_container_width=True)
+
+                if save_profile:
+                    if profile:
+                        profile.name = name
+                        profile.address = address
+                        profile.phone = phone
+                        profile.email = email
+                        profile.gstin = gstin
+                        profile.website = website
+                        profile.logo_path = logo_path
+                        profile.bank_details = bank_details
+                    else:
+                        profile = CompanyProfile(
+                            name=name,
+                            address=address,
+                            phone=phone,
+                            email=email,
+                            gstin=gstin,
+                            website=website,
+                            logo_path=logo_path,
+                            bank_details=bank_details,
+                        )
+                        db.add(profile)
+                    db.commit()
+                    st.success("Company profile saved successfully.")
+
+                preview = db.query(CompanyProfile).first()
+                if preview:
+                    st.markdown("#### Current Profile")
+                    preview_rows = [{
+                        "Name": preview.name,
+                        "GSTIN": preview.gstin or "-",
+                        "Phone": preview.phone or "-",
+                        "Email": preview.email or "-",
+                        "Website": preview.website or "-",
+                        "Logo Path": preview.logo_path or "-",
+                        "Address": preview.address,
+                        "Bank Details": preview.bank_details or "-",
+                    }]
+                    st.dataframe(pd.DataFrame(preview_rows), use_container_width=True, hide_index=True)
+
             elif report_type == "GST Summary (GSTR-3B)":
                 st.markdown(f"### GST Summary — {from_date} to {to_date}")
                 bals = ledger_balances()
@@ -1712,101 +1916,9 @@ elif "Reports" in page:
                               "Status": v.status}
                              for v in vouchers]
                     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-                    st.metric("Grand Total", fmt_inr(sum(float(v.total_amount) for v in vouchers)))
+                    st.metric("Grand Total", fmt_inr(sum(_f(v.total_amount) for v in vouchers)))
                 else:
                     st.info("No vouchers found for the selected period.")
-
-            elif report_type == "Print Invoice / PDF":
-                st.markdown("### Generate GST Tax Invoice PDF")
-                co = db.query(Company).first()
-
-                # ── Invoice Meta ───────────────────────────────────────────────
-                c1, c2, c3 = st.columns(3)
-                with c1:
-                    inv_no_inp  = st.text_input("Invoice No", value="INV99-012")
-                with c2:
-                    inv_date_inp = st.date_input("Invoice Date", value=date.today(), format="DD/MM/YYYY")
-                with c3:
-                    from datetime import timedelta
-                    due_date_inp = st.date_input("Due Date", value=date.today() + timedelta(days=30), format="DD/MM/YYYY")
-
-                c4, c5 = st.columns(2)
-                with c4:
-                    po_ref_inp = st.text_input("PO Reference", value="")
-                with c5:
-                    inter_state_pdf = st.checkbox("Inter-State Supply (IGST)", value=False)
-
-                # ── Buyer Details ──────────────────────────────────────────────
-                st.markdown("**Buyer Details**")
-                parties = db.query(Party).filter_by(is_active=True).order_by(Party.name).all()
-                party_options = {f"{p.code} — {p.name}": p for p in parties}
-                sel_party = st.selectbox("Select Customer / Party", list(party_options.keys()))
-                buyer_p   = party_options.get(sel_party)
-                buyer_addr_inp = st.text_input("Buyer Address", value=buyer_p.address or "" if buyer_p else "")
-
-                # ── Line Items ─────────────────────────────────────────────────
-                st.markdown("**Line Items**")
-                n_items = st.number_input("Number of Line Items", min_value=1, max_value=20, value=3, step=1)
-                line_items = []
-                gst_pct_pdf = st.selectbox("GST Rate (%) — applies to all items", [0,5,12,18,28], index=3)
-
-                for i in range(int(n_items)):
-                    st.markdown(f"*Item {i+1}*")
-                    ci1, ci2, ci3, ci4, ci5 = st.columns([3,1,1,2,1])
-                    with ci1: desc = st.text_input("Description", key=f"pdf_desc_{i}", value=f"Service Item {i+1}")
-                    with ci2: sac  = st.text_input("SAC", key=f"pdf_sac_{i}", value="998314")
-                    with ci3: qty  = st.number_input("Qty", key=f"pdf_qty_{i}", value=1.0, min_value=0.0, step=0.5)
-                    with ci4: rate = st.number_input("Rate (₹)", key=f"pdf_rate_{i}", value=10000.0, step=500.0)
-                    with ci5: unit = st.selectbox("Unit", ["Nos","Hrs","Days","Months","Ltr","Kg"], key=f"pdf_unit_{i}")
-                    line_items.append({"description": desc, "sac": sac, "qty": qty, "unit": unit,
-                                       "rate": rate, "gst_pct": gst_pct_pdf, "is_igst": inter_state_pdf})
-
-                narration_inp = st.text_area("Narration / Terms", value="Subject to Hyderabad jurisdiction. E.&O.E.", height=60)
-
-                if st.button("📄 Generate & Download PDF", use_container_width=True):
-                    try:
-                        inv_data = {
-                            "invoice_no":  inv_no_inp,
-                            "invoice_date": inv_date_inp,
-                            "due_date":    due_date_inp,
-                            "po_ref":      po_ref_inp,
-                            # Seller from Company
-                            "seller_name":     co.name if co else "Your Company",
-                            "seller_address":  (
-                                f"{co.address_line1 or ''}, {co.address_line2 or ''}, "
-                                f"{co.city or ''} – {co.pincode or ''}, {co.state_code or ''}"
-                            ) if co else "",
-                            "seller_gstin":    co.gstin if co else "",
-                            "seller_pan":      co.pan   if co else "",
-                            "seller_phone":    co.phone  if co else "",
-                            "seller_email":    co.email  if co else "",
-                            "seller_bank_name": "ICICI Bank",
-                            "seller_account_no": "004005030748",
-                            "seller_ifsc":      "ICIC0000040",
-                            "seller_branch":    "Madhapur, Hyderabad",
-                            # Buyer
-                            "buyer_name":    buyer_p.name    if buyer_p else sel_party,
-                            "buyer_address": buyer_addr_inp,
-                            "buyer_gstin":   buyer_p.gstin   if buyer_p else "",
-                            "place_of_supply": "Telangana",
-                            "line_items":    line_items,
-                            "narration":     narration_inp,
-                            "footer_text":   co.invoice_footer_text if co else "",
-                        }
-                        pdf_bytes = generate_invoice_pdf(inv_data)
-                        fname = f"{inv_no_inp.replace('/','_')}_{(buyer_p.name if buyer_p else 'invoice').replace(' ','_')}.pdf"
-                        st.download_button(
-                            label="⬇️  Download Invoice PDF",
-                            data=pdf_bytes,
-                            file_name=fname,
-                            mime="application/pdf",
-                            use_container_width=True,
-                        )
-                        taxable = sum(float(it["qty"]) * float(it["rate"]) for it in line_items)
-                        gst_total = taxable * gst_pct_pdf / 100
-                        st.success(f"✅ PDF ready: **{fname}** | Taxable ₹{taxable:,.2f} | GST ₹{gst_total:,.2f} | Grand Total ₹{taxable+gst_total:,.2f}")
-                    except Exception as e:
-                        st.error(f"PDF generation error: {e}")
 
             elif report_type == "Ledger Statement":
                 all_leds = db.query(Ledger).order_by(Ledger.name).all()
@@ -1820,14 +1932,14 @@ elif "Reports" in page:
                         Voucher.voucher_date <= to_date,
                         Voucher.status == "POSTED"
                     ).order_by(Voucher.voucher_date).all()
-                    opening = float(led_obj.opening_balance or 0)
+                    opening = _f(led_obj.opening_balance)
                     balance = opening
                     rows    = [{"Date": "", "Voucher No": "Opening Balance",
                                  "Narration": "", "Dr": "", "Cr": "",
                                  "Balance": fmt_inr(opening)}]
                     for t in txns:
                         v = db.query(Voucher).filter_by(id=t.voucher_id).first()
-                        balance += float(t.debit or 0) - float(t.credit or 0)
+                        balance += _f(t.debit) - _f(t.credit)
                         rows.append({
                             "Date": fmt_date(v.voucher_date) if v else "",
                             "Voucher No": v.voucher_no if v else "",
@@ -1873,8 +1985,9 @@ elif "Reports" in page:
                 buckets = {"0-30":0.0,"31-60":0.0,"61-90":0.0,"91-180":0.0,"180+":0.0}
                 rows = []
                 for v in vouchers:
-                    age = (to_date - v.voucher_date).days
-                    amt = float(v.total_amount or 0)
+                    vdate = v.voucher_date.date() if isinstance(v.voucher_date, datetime) else v.voucher_date
+                    age = (to_date - vdate).days if vdate else 0
+                    amt = _f(v.total_amount)
                     bkt = ("0-30" if age<=30 else "31-60" if age<=60
                            else "61-90" if age<=90 else "91-180" if age<=180 else "180+")
                     buckets[bkt] += amt
@@ -1905,11 +2018,11 @@ elif "Bank Reconciliation" in page:
         bank    = b_opts[sel_bank]
 
         # Book balance
-        txns    = db.query(Transaction).join(Voucher).filter(
+        txns = db.query(Transaction).join(Voucher).filter(
             Transaction.ledger_id == bank.id,
             Voucher.status == "POSTED"
         ).all()
-        book_bal= float(bank.opening_balance or 0) + sum(float(t.debit or 0) - float(t.credit or 0) for t in txns)
+        book_bal = _f(bank.opening_balance) + sum(_f(t.debit) - _f(t.credit) for t in txns)
 
         st.metric("📖 Book Balance", fmt_inr(book_bal))
 
@@ -1989,8 +2102,8 @@ elif "Fixed Assets" in page:
                       "Book Value":fmt_inr(a.book_value),"Method":a.depreciation_method}
                      for a in assets]
             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-            total_cost = sum(float(a.cost or 0) for a in assets)
-            total_dep  = sum(float(a.accumulated_dep or 0) for a in assets)
+            total_cost = sum(_f(a.cost) for a in assets)
+            total_dep  = sum(_f(a.accumulated_dep) for a in assets)
             col1,col2,col3 = st.columns(3)
             col1.metric("Total Cost",       fmt_inr(total_cost))
             col2.metric("Total Acc. Dep",   fmt_inr(total_dep))
@@ -2027,16 +2140,17 @@ elif "Fixed Assets" in page:
             for a in assets:
                 if a.book_value > 0:
                     if a.depreciation_method == "SLM":
-                        ann_dep = (float(a.cost) - float(a.salvage_value)) / max(a.useful_life_yrs, 1)
+                        ann_dep = (_f(a.cost) - _f(a.salvage_value)) / max(a.useful_life_yrs, 1)
                     else:
-                        rate = float(a.wdv_rate or 20) / 100
-                        ann_dep = float(a.book_value) * rate
-                    ann_dep = round(min(ann_dep, float(a.book_value)), 2)
+                        rate = _f(a.wdv_rate or 20) / 100
+                        ann_dep = _f(a.book_value) * rate
+                    bv = _f(a.book_value)
+                    ann_dep = round(min(ann_dep, bv), 2)
                     if ann_dep > 0:
                         total_dep_jv += ann_dep
                         # Update FA record
-                        a.accumulated_dep = float(a.accumulated_dep or 0) + ann_dep
-                        a.book_value = float(a.book_value) - ann_dep
+                        a.accumulated_dep = _f(a.accumulated_dep) + ann_dep
+                        a.book_value = _f(a.book_value) - ann_dep
             if total_dep_jv > 0:
                 db.flush()  # Persist asset updates before posting JV
                 jv_entries = [

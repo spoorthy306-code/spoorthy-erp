@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spoorthy-erp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spoorthy-erp
+  template:
+    metadata:
+      labels:
+        app: spoorthy-erp
+    spec:
+      initContainers:
+        - name: migrate-db
+          image: python:3.12-slim
+          command: ["sh", "-c", "pip install -r requirements.txt && python main.py"]
+          volumeMounts:
+            - mountPath: /app
+              name: app-volume
+      containers:
+        - name: api-gateway
+          image: spoorthy-erp-api:latest
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+      volumes:
+        - name: app-volume
+          emptyDir: {}

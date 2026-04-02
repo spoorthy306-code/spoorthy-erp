@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SPOORTHY ERP — Complete System
+Spoorthy ERP — Complete System
 main.py  —  Validates the full integrated system
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Run UI:  streamlit run ui/app.py
@@ -119,7 +119,7 @@ def send_email(
 
 def run_validation():
     print("\n" + "="*68)
-    print("  SPOORTHY ERP — Complete System Validation")
+    print("  Spoorthy ERP — Complete System Validation")
     print("="*68)
 
     # ── 1. Schema ─────────────────────────────────────────────────────────────
@@ -301,7 +301,7 @@ def run_validation():
     # ── 6. Summary ────────────────────────────────────────────────────────────
     print("\n[6/6] System summary...")
     print(f"\n{'='*68}")
-    print(f"  ✅  SPOORTHY ERP — All Systems Operational")
+    print(f"  ✅  Spoorthy ERP — All Systems Operational")
     print(f"{'='*68}")
     print("""
   ┌─────────────────────────────────────────────────────────────┐

@@ -1,5 +1,5 @@
 """
-settings_ui.py — Comprehensive Organisation Settings for SPOORTHY ERP
+settings_ui.py — Comprehensive Organisation Settings for Spoorthy ERP
 Mirrors Zoho Books settings structure: 10 top-level sections, each with tabs.
 """
 

@@ -1,5 +1,5 @@
 """
-SPOORTHY ERP
+Spoorthy ERP
 db/seed.py — Complete default master data seeder
 Seeds: Groups, Ledgers, Tax Ledgers, Units, Currencies,
        Voucher Types, Fiscal Year, GST Registration, System Config
@@ -37,7 +37,7 @@ def seed_all(force: bool = False):
         _seed_default_parties(db, force)
         _seed_org_location(db, force)
         db.commit()
-        print("\n✅  SPOORTHY ERP — All master data seeded successfully.\n")
+        print("\n✅  Spoorthy ERP — All master data seeded successfully.\n")
     except Exception as e:
         db.rollback()
         print(f"❌  Seed error: {e}")

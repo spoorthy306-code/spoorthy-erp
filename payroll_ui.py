@@ -1,5 +1,5 @@
 """
-payroll_ui.py — Zoho Payroll-style UI for SPOORTHY ERP
+payroll_ui.py — Zoho Payroll-style UI for Spoorthy ERP
 Tabs: Employees | Pay Runs | Taxes & Forms | Reports
 """
 
