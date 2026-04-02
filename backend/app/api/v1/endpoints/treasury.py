@@ -1,11 +1,12 @@
 # SPOORTHY QUANTUM OS — Treasury Management API
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from typing import List, Optional, Dict
-from uuid import UUID
 from datetime import date, datetime
 from math import exp, log
+from typing import Dict, List, Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ....db.session import get_db
 from ....models.models import Entity
@@ -15,9 +16,7 @@ router = APIRouter()
 
 @router.get("/cash-position")
 async def get_cash_position(
-    entity_id: UUID,
-    as_of: Optional[date] = None,
-    db: AsyncSession = Depends(get_db)
+    entity_id: UUID, as_of: Optional[date] = None, db: AsyncSession = Depends(get_db)
 ):
     """
     Real-time treasury cash position across all accounts and currencies.
@@ -31,17 +30,34 @@ async def get_cash_position(
 
     # In production these would come from bank_transactions table
     accounts = [
-        {"account": "Current Account — HDFC", "currency": "INR", "balance": 12_500_000.0, "bank": "HDFC Bank"},
-        {"account": "Current Account — SBI",  "currency": "INR", "balance":  3_200_000.0, "bank": "State Bank of India"},
-        {"account": "EEFC Account — Citi",    "currency": "USD", "balance":     85_000.0, "bank": "Citibank"},
-        {"account": "Fixed Deposit — ICICI",  "currency": "INR", "balance":  5_000_000.0, "bank": "ICICI Bank"},
+        {
+            "account": "Current Account — HDFC",
+            "currency": "INR",
+            "balance": 12_500_000.0,
+            "bank": "HDFC Bank",
+        },
+        {
+            "account": "Current Account — SBI",
+            "currency": "INR",
+            "balance": 3_200_000.0,
+            "bank": "State Bank of India",
+        },
+        {
+            "account": "EEFC Account — Citi",
+            "currency": "USD",
+            "balance": 85_000.0,
+            "bank": "Citibank",
+        },
+        {
+            "account": "Fixed Deposit — ICICI",
+            "currency": "INR",
+            "balance": 5_000_000.0,
+            "bank": "ICICI Bank",
+        },
     ]
     fx_rates = {"INR": 1.0, "USD": 83.5, "EUR": 91.2, "GBP": 106.1}
 
-    total_inr = sum(
-        a["balance"] * fx_rates.get(a["currency"], 1.0)
-        for a in accounts
-    )
+    total_inr = sum(a["balance"] * fx_rates.get(a["currency"], 1.0) for a in accounts)
 
     return {
         "entity_id": str(entity_id),
@@ -60,7 +76,7 @@ async def invest_surplus(
     amount: float,
     tenor_days: int,
     instrument: str = "LIQUID_MF",  # LIQUID_MF | T_BILL | FD | OVERNIGHT_REPO
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Invest surplus cash in money-market instruments.
@@ -71,14 +87,17 @@ async def invest_surplus(
         raise HTTPException(status_code=404, detail="Entity not found")
 
     INSTRUMENT_RATES = {
-        "LIQUID_MF":      0.071,   # 7.1% p.a.
-        "T_BILL":         0.068,   # 6.8% p.a. (91-day T-Bill)
-        "FD":             0.075,   # 7.5% p.a. bank FD
-        "OVERNIGHT_REPO": 0.065,   # 6.5% p.a. repo rate
-        "CP":             0.076,   # 7.6% p.a. commercial paper
+        "LIQUID_MF": 0.071,  # 7.1% p.a.
+        "T_BILL": 0.068,  # 6.8% p.a. (91-day T-Bill)
+        "FD": 0.075,  # 7.5% p.a. bank FD
+        "OVERNIGHT_REPO": 0.065,  # 6.5% p.a. repo rate
+        "CP": 0.076,  # 7.6% p.a. commercial paper
     }
     if instrument not in INSTRUMENT_RATES:
-        raise HTTPException(status_code=400, detail=f"Unknown instrument. Choose from: {list(INSTRUMENT_RATES)}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown instrument. Choose from: {list(INSTRUMENT_RATES)}",
+        )
 
     annual_rate = INSTRUMENT_RATES[instrument]
     interest = round(amount * annual_rate * tenor_days / 365, 2)
@@ -105,7 +124,7 @@ async def fund_cash_deficit(
     entity_id: UUID,
     deficit_amount: float,
     required_by: date,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Evaluate funding options to cover a cash deficit.
@@ -118,11 +137,36 @@ async def fund_cash_deficit(
     days = max((required_by - date.today()).days, 1)
 
     options = [
-        {"source": "OD Facility — HDFC",      "available": 20_000_000, "rate_pa": 0.095, "cost": deficit_amount * 0.095 * days / 365},
-        {"source": "Cash Credit — SBI",        "available": 15_000_000, "rate_pa": 0.090, "cost": deficit_amount * 0.090 * days / 365},
-        {"source": "Commercial Paper (30d)",   "available": 50_000_000, "rate_pa": 0.076, "cost": deficit_amount * 0.076 * days / 365},
-        {"source": "Inter-company Loan",       "available":  5_000_000, "rate_pa": 0.080, "cost": deficit_amount * 0.080 * days / 365},
-        {"source": "Redeem Liquid MF",         "available": 10_000_000, "rate_pa": 0.000, "cost": 0.0},
+        {
+            "source": "OD Facility — HDFC",
+            "available": 20_000_000,
+            "rate_pa": 0.095,
+            "cost": deficit_amount * 0.095 * days / 365,
+        },
+        {
+            "source": "Cash Credit — SBI",
+            "available": 15_000_000,
+            "rate_pa": 0.090,
+            "cost": deficit_amount * 0.090 * days / 365,
+        },
+        {
+            "source": "Commercial Paper (30d)",
+            "available": 50_000_000,
+            "rate_pa": 0.076,
+            "cost": deficit_amount * 0.076 * days / 365,
+        },
+        {
+            "source": "Inter-company Loan",
+            "available": 5_000_000,
+            "rate_pa": 0.080,
+            "cost": deficit_amount * 0.080 * days / 365,
+        },
+        {
+            "source": "Redeem Liquid MF",
+            "available": 10_000_000,
+            "rate_pa": 0.000,
+            "cost": 0.0,
+        },
     ]
 
     # Sort by cost
@@ -144,10 +188,7 @@ async def fund_cash_deficit(
 
 
 @router.get("/fx-hedging")
-async def get_fx_hedging_analysis(
-    entity_id: UUID,
-    db: AsyncSession = Depends(get_db)
-):
+async def get_fx_hedging_analysis(entity_id: UUID, db: AsyncSession = Depends(get_db)):
     """
     FX exposure analysis and hedging recommendations.
     """
@@ -156,22 +197,51 @@ async def get_fx_hedging_analysis(
         raise HTTPException(status_code=404, detail="Entity not found")
 
     exposures = [
-        {"currency": "USD", "receivable": 250_000, "payable": 80_000, "net": 170_000,
-         "spot_rate": 83.5, "inr_equivalent": 14_195_000, "hedged_pct": 65.0},
-        {"currency": "EUR", "receivable": 50_000,  "payable": 20_000, "net":  30_000,
-         "spot_rate": 91.2, "inr_equivalent":  2_736_000, "hedged_pct": 40.0},
-        {"currency": "GBP", "receivable": 10_000,  "payable":  5_000, "net":   5_000,
-         "spot_rate": 106.1, "inr_equivalent":   530_500, "hedged_pct": 0.0},
+        {
+            "currency": "USD",
+            "receivable": 250_000,
+            "payable": 80_000,
+            "net": 170_000,
+            "spot_rate": 83.5,
+            "inr_equivalent": 14_195_000,
+            "hedged_pct": 65.0,
+        },
+        {
+            "currency": "EUR",
+            "receivable": 50_000,
+            "payable": 20_000,
+            "net": 30_000,
+            "spot_rate": 91.2,
+            "inr_equivalent": 2_736_000,
+            "hedged_pct": 40.0,
+        },
+        {
+            "currency": "GBP",
+            "receivable": 10_000,
+            "payable": 5_000,
+            "net": 5_000,
+            "spot_rate": 106.1,
+            "inr_equivalent": 530_500,
+            "hedged_pct": 0.0,
+        },
     ]
 
     hedges = [
-        {"type": "USD Forward Sell", "notional_usd": 110_500, "forward_rate": 84.1,
-         "maturity": "2026-06-30", "unrealised_pnl": 66_300, "status": "ACTIVE"},
+        {
+            "type": "USD Forward Sell",
+            "notional_usd": 110_500,
+            "forward_rate": 84.1,
+            "maturity": "2026-06-30",
+            "unrealised_pnl": 66_300,
+            "status": "ACTIVE",
+        },
     ]
 
     total_exposure_inr = sum(e["inr_equivalent"] for e in exposures)
     hedged_value = sum(h["notional_usd"] * 83.5 for h in hedges)
-    hedge_ratio = round(hedged_value / total_exposure_inr * 100, 1) if total_exposure_inr else 0
+    hedge_ratio = (
+        round(hedged_value / total_exposure_inr * 100, 1) if total_exposure_inr else 0
+    )
 
     return {
         "entity_id": str(entity_id),
@@ -191,8 +261,7 @@ async def get_fx_hedging_analysis(
 
 @router.get("/lcr")
 async def get_liquidity_coverage_ratio(
-    entity_id: UUID,
-    db: AsyncSession = Depends(get_db)
+    entity_id: UUID, db: AsyncSession = Depends(get_db)
 ):
     """
     Liquidity Coverage Ratio (LCR) per Basel III framework.
@@ -222,8 +291,16 @@ async def get_liquidity_coverage_ratio(
         "total_inflows": 3_800_000,
     }
 
-    net_outflows = max(outflows_30d["total_outflows"] - min(inflows_30d["total_inflows"], 0.75 * outflows_30d["total_outflows"]), 0)
-    lcr = round(hqla["total_hqla"] / net_outflows * 100, 2) if net_outflows else float("inf")
+    net_outflows = max(
+        outflows_30d["total_outflows"]
+        - min(inflows_30d["total_inflows"], 0.75 * outflows_30d["total_outflows"]),
+        0,
+    )
+    lcr = (
+        round(hqla["total_hqla"] / net_outflows * 100, 2)
+        if net_outflows
+        else float("inf")
+    )
 
     return {
         "entity_id": str(entity_id),
@@ -241,8 +318,7 @@ async def get_liquidity_coverage_ratio(
 
 @router.get("/nsfr")
 async def get_net_stable_funding_ratio(
-    entity_id: UUID,
-    db: AsyncSession = Depends(get_db)
+    entity_id: UUID, db: AsyncSession = Depends(get_db)
 ):
     """
     Net Stable Funding Ratio (NSFR) per Basel III.
@@ -268,7 +344,11 @@ async def get_net_stable_funding_ratio(
         "total_rsf": 21_500_000,
     }
 
-    nsfr = round(asf["total_asf"] / rsf["total_rsf"] * 100, 2) if rsf["total_rsf"] else float("inf")
+    nsfr = (
+        round(asf["total_asf"] / rsf["total_rsf"] * 100, 2)
+        if rsf["total_rsf"]
+        else float("inf")
+    )
 
     return {
         "entity_id": str(entity_id),

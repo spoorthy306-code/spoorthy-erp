@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+
 from backend.app.main import app
 
 client = TestClient(app)
@@ -10,7 +11,7 @@ def test_create_order():
         "customer_id": 1,
         "total_amount": 100.50,
         "status": "pending",
-        "notes": "Test order"
+        "notes": "Test order",
     }
 
     response = client.post("/orders/", json=payload)

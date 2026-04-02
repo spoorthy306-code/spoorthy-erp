@@ -1206,7 +1206,6 @@ class QuantumDerivativesPricer:
         elif "UP" in option_type and "PUT" in option_type:
             payoff_mean = max(K - mc["mean"], 0) if mc["mean"] < B else 0
 
-        import math
         price = payoff_mean * math.exp(-r * T)
         return {
             "option_type":  option_type,
@@ -2358,10 +2357,7 @@ if __name__ == "__main__":
 # ============================================================
 
 import os, math, json, random, hashlib, logging
-from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
-from enum import Enum
 
 logging.basicConfig(level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -4216,9 +4212,6 @@ if __name__ == "__main__":
 # GLOBAL COMPLIANCE      M73–M80
 # ============================================================
 
-import os, math, json, random, hashlib, logging
-from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Any, Optional, Tuple
 
 logging.basicConfig(level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -5628,10 +5621,6 @@ if __name__ == "__main__":
 # ✅ FULL DEMO
 # ================================================================
 
-import os, math, json, random, hashlib, logging
-from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass, field
 
 logging.basicConfig(level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -5658,7 +5647,6 @@ class AIAgent:
     def _call_claude(self, task: str, ctx: Dict) -> str:
         """
         PRODUCTION:
-            import anthropic
             client = anthropic.Anthropic()
             r = client.messages.create(
                 model=self.MODEL, max_tokens=2048,
@@ -7644,11 +7632,6 @@ if __name__ == "__main__":
 # ✅ TREASURY & BANKING            T01–T08
 # ================================================================
 
-import os, math, json, random, hashlib, logging
-from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
 
 logging.basicConfig(level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -9211,9 +9194,6 @@ if __name__ == "__main__":
 # ✅ GLOBAL LEDGER MODULES    (Intercompany, Project, Currency, Loan, Provision)
 # ================================================================
 
-import os, math, json, random, hashlib, logging
-from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Any, Optional, Tuple
 
 logging.basicConfig(level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -11208,7 +11188,6 @@ def _quantum_qubo_solve_enhanced(Q: Dict, label: str = "QUBO") -> Dict:
         variables.add(b)
     n = len(variables)
     # Use simulated annealing approximation
-    import random
     best_solution = {v: random.randint(0, 1) for v in variables}
     best_energy = sum(Q.get((a, b), 0) * best_solution[a] * best_solution[b]
                       for (a, b) in Q.keys())

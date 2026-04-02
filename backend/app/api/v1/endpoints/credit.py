@@ -1,11 +1,12 @@
 # SPOORTHY QUANTUM OS — Credit Scoring & Risk API
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from typing import List, Optional, Dict
-from uuid import UUID
 from datetime import date, datetime
-from math import log, exp
+from math import exp, log
+from typing import Dict, List, Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ....db.session import get_db
 from ....models.models import Entity
@@ -20,13 +21,13 @@ def _logistic(z: float) -> float:
 
 def _score_band(score: int) -> Dict:
     if score >= 750:
-        return {"band": "PRIME",        "risk": "LOW",         "max_loan_multiplier": 36}
+        return {"band": "PRIME", "risk": "LOW", "max_loan_multiplier": 36}
     elif score >= 680:
-        return {"band": "NEAR_PRIME",   "risk": "MODERATE",    "max_loan_multiplier": 24}
+        return {"band": "NEAR_PRIME", "risk": "MODERATE", "max_loan_multiplier": 24}
     elif score >= 600:
-        return {"band": "SUBPRIME",     "risk": "HIGH",        "max_loan_multiplier": 12}
+        return {"band": "SUBPRIME", "risk": "HIGH", "max_loan_multiplier": 12}
     else:
-        return {"band": "DEEP_SUBPRIME","risk": "VERY_HIGH",   "max_loan_multiplier": 0}
+        return {"band": "DEEP_SUBPRIME", "risk": "VERY_HIGH", "max_loan_multiplier": 0}
 
 
 @router.post("/score/individual")
@@ -37,12 +38,12 @@ async def score_individual(
     existing_emi: float,
     loan_requested: float,
     tenure_months: int,
-    employment_type: str,            # SALARIED | SELF_EMPLOYED | BUSINESS
+    employment_type: str,  # SALARIED | SELF_EMPLOYED | BUSINESS
     credit_history_months: int,
     num_open_accounts: int,
     num_delinquencies_24m: int,
-    utilisation_pct: float,          # Credit utilisation 0-100
-    db: AsyncSession = Depends(get_db)
+    utilisation_pct: float,  # Credit utilisation 0-100
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Individual retail credit scoring using a logistic scorecard model.
@@ -138,12 +139,40 @@ async def score_individual(
         "eligible": eligible,
         "foir": round(total_foir * 100, 2),
         "scorecard_breakdown": {
-            "income_adequacy":    40 if total_foir <= 0.30 else 30 if total_foir <= 0.40 else 15 if total_foir <= 0.50 else 0,
-            "employment":         emp_scores.get(employment_type, 10),
-            "credit_history":     60 if credit_history_months >= 60 else 40 if credit_history_months >= 36 else 20 if credit_history_months >= 12 else 5,
-            "delinquency_free":   80 if num_delinquencies_24m == 0 else 40 if num_delinquencies_24m == 1 else 10 if num_delinquencies_24m == 2 else 0,
-            "utilisation":        40 if utilisation_pct <= 30 else 25 if utilisation_pct <= 50 else 10 if utilisation_pct <= 70 else 0,
-            "account_mix":        20 if 2 <= num_open_accounts <= 6 else 10 if num_open_accounts <= 8 else 0,
+            "income_adequacy": (
+                40
+                if total_foir <= 0.30
+                else 30 if total_foir <= 0.40 else 15 if total_foir <= 0.50 else 0
+            ),
+            "employment": emp_scores.get(employment_type, 10),
+            "credit_history": (
+                60
+                if credit_history_months >= 60
+                else (
+                    40
+                    if credit_history_months >= 36
+                    else 20 if credit_history_months >= 12 else 5
+                )
+            ),
+            "delinquency_free": (
+                80
+                if num_delinquencies_24m == 0
+                else (
+                    40
+                    if num_delinquencies_24m == 1
+                    else 10 if num_delinquencies_24m == 2 else 0
+                )
+            ),
+            "utilisation": (
+                40
+                if utilisation_pct <= 30
+                else 25 if utilisation_pct <= 50 else 10 if utilisation_pct <= 70 else 0
+            ),
+            "account_mix": (
+                20
+                if 2 <= num_open_accounts <= 6
+                else 10 if num_open_accounts <= 8 else 0
+            ),
         },
         "assessed_at": datetime.utcnow().isoformat(),
     }
@@ -161,7 +190,7 @@ async def score_corporate(
     years_in_operation: int,
     industry: str,
     loan_requested: float,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Corporate credit scoring using Altman Z-score variant and ratio analysis.
@@ -174,13 +203,13 @@ async def score_corporate(
     equity_est = max(annual_revenue * 0.3, 1)  # simplified book equity estimate
 
     # Altman Z-score components
-    x1 = working_capital / max(annual_revenue, 1)                # liquidity
-    x2 = (ebitda * 0.6) / max(annual_revenue, 1)                 # retained earnings proxy
-    x3 = ebitda / max(annual_revenue, 1)                          # profitability
-    x4 = equity_est / max(total_debt, 1)                          # leverage
-    x5 = annual_revenue / max(annual_revenue, 1)                  # asset turnover = 1.0 (normalised)
+    x1 = working_capital / max(annual_revenue, 1)  # liquidity
+    x2 = (ebitda * 0.6) / max(annual_revenue, 1)  # retained earnings proxy
+    x3 = ebitda / max(annual_revenue, 1)  # profitability
+    x4 = equity_est / max(total_debt, 1)  # leverage
+    x5 = annual_revenue / max(annual_revenue, 1)  # asset turnover = 1.0 (normalised)
 
-    z_score = 1.2*x1 + 1.4*x2 + 3.3*x3 + 0.6*x4 + 1.0*x5
+    z_score = 1.2 * x1 + 1.4 * x2 + 3.3 * x3 + 0.6 * x4 + 1.0 * x5
 
     # Z-score interpretation
     if z_score >= 2.99:
@@ -190,16 +219,21 @@ async def score_corporate(
     elif z_score >= 1.81:
         zone = "GREY"
         risk = "MODERATE"
-        pd = round(0.05  + _logistic(-z_score + 2) * 0.10, 4)
+        pd = round(0.05 + _logistic(-z_score + 2) * 0.10, 4)
     else:
         zone = "DISTRESS"
         risk = "HIGH"
-        pd = round(0.20  + _logistic(-z_score + 3) * 0.30, 4)
+        pd = round(0.20 + _logistic(-z_score + 3) * 0.30, 4)
 
     # Industry adjustment
     INDUSTRY_MULTIPLIERS = {
-        "IT_SERVICES": 0.85, "MANUFACTURING": 1.0, "REAL_ESTATE": 1.2,
-        "RETAIL": 1.05, "PHARMA": 0.90, "INFRA": 1.15, "FMCG": 0.95,
+        "IT_SERVICES": 0.85,
+        "MANUFACTURING": 1.0,
+        "REAL_ESTATE": 1.2,
+        "RETAIL": 1.05,
+        "PHARMA": 0.90,
+        "INFRA": 1.15,
+        "FMCG": 0.95,
     }
     pd = round(pd * INDUSTRY_MULTIPLIERS.get(industry, 1.0), 4)
     pd = min(pd, 0.99)
@@ -237,10 +271,10 @@ async def score_corporate(
 async def recommend_loan_terms(
     entity_id: UUID,
     credit_score: int,
-    loan_type: str,   # HOME | VEHICLE | PERSONAL | BUSINESS | MSME
+    loan_type: str,  # HOME | VEHICLE | PERSONAL | BUSINESS | MSME
     loan_amount: float,
     tenure_months: int,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Recommend loan terms (rate, LTV, collateral) based on credit score and loan type.
@@ -250,8 +284,11 @@ async def recommend_loan_terms(
         raise HTTPException(status_code=404, detail="Entity not found")
 
     BASE_RATES = {
-        "HOME": 0.085, "VEHICLE": 0.092, "PERSONAL": 0.120,
-        "BUSINESS": 0.110, "MSME": 0.095,
+        "HOME": 0.085,
+        "VEHICLE": 0.092,
+        "PERSONAL": 0.120,
+        "BUSINESS": 0.110,
+        "MSME": 0.095,
     }
     base_rate = BASE_RATES.get(loan_type, 0.120)
 
@@ -265,18 +302,36 @@ async def recommend_loan_terms(
     elif credit_score >= 600:
         premium = 0.050
     else:
-        raise HTTPException(status_code=400, detail="Credit score below minimum threshold (600)")
+        raise HTTPException(
+            status_code=400, detail="Credit score below minimum threshold (600)"
+        )
 
     final_rate = base_rate + premium
     monthly_rate = final_rate / 12
-    emi = round(loan_amount * monthly_rate * (1 + monthly_rate)**tenure_months /
-                ((1 + monthly_rate)**tenure_months - 1), 2)
+    emi = round(
+        loan_amount
+        * monthly_rate
+        * (1 + monthly_rate) ** tenure_months
+        / ((1 + monthly_rate) ** tenure_months - 1),
+        2,
+    )
     total_payable = round(emi * tenure_months, 2)
     total_interest = round(total_payable - loan_amount, 2)
 
-    LTV = {"HOME": 0.80, "VEHICLE": 0.85, "PERSONAL": 1.0, "BUSINESS": 0.70, "MSME": 0.75}
-    collateral = {"HOME": "Property mortgage", "VEHICLE": "Vehicle hypothecation",
-                  "PERSONAL": "None", "BUSINESS": "Business assets", "MSME": "Plant and machinery"}
+    LTV = {
+        "HOME": 0.80,
+        "VEHICLE": 0.85,
+        "PERSONAL": 1.0,
+        "BUSINESS": 0.70,
+        "MSME": 0.75,
+    }
+    collateral = {
+        "HOME": "Property mortgage",
+        "VEHICLE": "Vehicle hypothecation",
+        "PERSONAL": "None",
+        "BUSINESS": "Business assets",
+        "MSME": "Plant and machinery",
+    }
 
     return {
         "entity_id": str(entity_id),
@@ -298,8 +353,7 @@ async def recommend_loan_terms(
 
 @router.get("/portfolio-risk")
 async def get_credit_portfolio_risk(
-    entity_id: UUID,
-    db: AsyncSession = Depends(get_db)
+    entity_id: UUID, db: AsyncSession = Depends(get_db)
 ):
     """
     Aggregate credit portfolio risk metrics — concentration, VaR, expected loss.
@@ -309,14 +363,40 @@ async def get_credit_portfolio_risk(
         raise HTTPException(status_code=404, detail="Entity not found")
 
     portfolio = [
-        {"segment": "Home Loans",     "outstanding": 45_000_000, "avg_pd": 0.012, "avg_lgd": 0.25, "avg_score": 730},
-        {"segment": "Vehicle Loans",  "outstanding": 28_000_000, "avg_pd": 0.025, "avg_lgd": 0.35, "avg_score": 695},
-        {"segment": "MSME Loans",     "outstanding": 35_000_000, "avg_pd": 0.045, "avg_lgd": 0.50, "avg_score": 650},
-        {"segment": "Personal Loans", "outstanding": 12_000_000, "avg_pd": 0.080, "avg_lgd": 0.70, "avg_score": 610},
+        {
+            "segment": "Home Loans",
+            "outstanding": 45_000_000,
+            "avg_pd": 0.012,
+            "avg_lgd": 0.25,
+            "avg_score": 730,
+        },
+        {
+            "segment": "Vehicle Loans",
+            "outstanding": 28_000_000,
+            "avg_pd": 0.025,
+            "avg_lgd": 0.35,
+            "avg_score": 695,
+        },
+        {
+            "segment": "MSME Loans",
+            "outstanding": 35_000_000,
+            "avg_pd": 0.045,
+            "avg_lgd": 0.50,
+            "avg_score": 650,
+        },
+        {
+            "segment": "Personal Loans",
+            "outstanding": 12_000_000,
+            "avg_pd": 0.080,
+            "avg_lgd": 0.70,
+            "avg_score": 610,
+        },
     ]
 
     total_outstanding = sum(p["outstanding"] for p in portfolio)
-    expected_loss = sum(p["outstanding"] * p["avg_pd"] * p["avg_lgd"] for p in portfolio)
+    expected_loss = sum(
+        p["outstanding"] * p["avg_pd"] * p["avg_lgd"] for p in portfolio
+    )
 
     for p in portfolio:
         p["expected_loss"] = round(p["outstanding"] * p["avg_pd"] * p["avg_lgd"], 0)
@@ -334,6 +414,8 @@ async def get_credit_portfolio_risk(
         "unexpected_loss_99_9pct": round(unexpected_loss_999, 0),
         "economic_capital_required": round(unexpected_loss_999 - expected_loss, 0),
         "portfolio_breakdown": portfolio,
-        "herfindahl_index": round(sum((p["outstanding"] / total_outstanding)**2 for p in portfolio), 4),
+        "herfindahl_index": round(
+            sum((p["outstanding"] / total_outstanding) ** 2 for p in portfolio), 4
+        ),
         "top_segment": max(portfolio, key=lambda x: x["outstanding"])["segment"],
     }

@@ -1,6 +1,6 @@
-from backend.db.session import SessionLocal
 from backend.app.models.finance import AccountGroup, Ledger
 from backend.app.models.masters import TaxMaster, UnitMaster
+from backend.db.session import SessionLocal
 
 
 def _ensure_defaults():
@@ -17,7 +17,15 @@ def _ensure_defaults():
         for group_type, name in groups:
             group = db.query(AccountGroup).filter_by(name=name).first()
             if not group:
-                db.add(AccountGroup(code=name.lower(), name=name, group_type=group_type, affects_gross=False, is_system=True))
+                db.add(
+                    AccountGroup(
+                        code=name.lower(),
+                        name=name,
+                        group_type=group_type,
+                        affects_gross=False,
+                        is_system=True,
+                    )
+                )
         db.commit()
 
         assets = db.query(AccountGroup).filter_by(name="Assets").first()
@@ -34,7 +42,16 @@ def _ensure_defaults():
                 continue
             group = db.query(AccountGroup).filter_by(name=name).first()
             if not group:
-                db.add(AccountGroup(code=name.lower().replace(' ', '_'), name=name, group_type='ASSET' if parent_id == assets.id else 'LIABILITY', parent_id=parent_id, affects_gross=False, is_system=False))
+                db.add(
+                    AccountGroup(
+                        code=name.lower().replace(" ", "_"),
+                        name=name,
+                        group_type="ASSET" if parent_id == assets.id else "LIABILITY",
+                        parent_id=parent_id,
+                        affects_gross=False,
+                        is_system=False,
+                    )
+                )
         db.commit()
 
         # Ledgers
@@ -56,8 +73,21 @@ def _ensure_defaults():
                 continue
             ledger = db.query(Ledger).filter_by(name=name).first()
             if not ledger:
-                code = name.lower().replace(' ', '_').replace('&', 'and').replace('/', '_')
-                db.add(Ledger(code=code, name=name, group_id=group_id, nature='Dr', opening_balance=0.0, opening_type='Dr', currency='INR', is_active=True))
+                code = (
+                    name.lower().replace(" ", "_").replace("&", "and").replace("/", "_")
+                )
+                db.add(
+                    Ledger(
+                        code=code,
+                        name=name,
+                        group_id=group_id,
+                        nature="Dr",
+                        opening_balance=0.0,
+                        opening_type="Dr",
+                        currency="INR",
+                        is_active=True,
+                    )
+                )
         db.commit()
 
         # Tax masters
@@ -93,15 +123,17 @@ def _ensure_defaults():
 
         company = db.query(CompanyProfile).first()
         if not company:
-            db.add(CompanyProfile(
-                name="Spoorthy Solutions Pvt Ltd",
-                address="Plot 42, Tech Park, Hyderabad, 500081",
-                phone="+91 98765 43210",
-                email="info@spoorthy.erp",
-                gstin="36ABCDE1234F1Z5",
-                logo_path="static/logo.png",
-                bank_details="Bank: ICICI Bank, A/c: 1234567890, IFSC: ICIC0000001"
-            ))
+            db.add(
+                CompanyProfile(
+                    name="Spoorthy Solutions Pvt Ltd",
+                    address="Plot 42, Tech Park, Hyderabad, 500081",
+                    phone="+91 98765 43210",
+                    email="info@spoorthy.erp",
+                    gstin="36ABCDE1234F1Z5",
+                    logo_path="static/logo.png",
+                    bank_details="Bank: ICICI Bank, A/c: 1234567890, IFSC: ICIC0000001",
+                )
+            )
         db.commit()
 
         print("Master data seed complete.")

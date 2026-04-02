@@ -102,7 +102,6 @@ os.makedirs("backend/app/core", exist_ok=True)
 with open("backend/app/main.py", "w", encoding="utf-8") as f:
     f.write('''from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.db.base import Base
 from backend.db.session import engine
 
 app = FastAPI(title="Spoorthy ERP", version="1.0.0")

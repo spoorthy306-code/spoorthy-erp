@@ -1,22 +1,25 @@
 # SPOORTHY QUANTUM OS — Database Models Tests
 # tests/test_models.py
 
-import pytest
-from datetime import date, datetime
-import uuid
-import sys
 import os
+import sys
+import uuid
+from datetime import date, datetime
+
+import pytest
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from backend.app.models.models import (
-    Entity, JournalEntry, JournalLine, Invoice,
-    GSTReturn, FixedAsset, Inventory, QuantumJob,
-    EntityCreateSchema, JournalEntryCreateSchema, InvoiceCreateSchema,
-    FixedAssetCreateSchema, InventoryCreateSchema, EmployeeCreateSchema,
-    LoanCreateSchema
-)
+from backend.app.models.models import (EmployeeCreateSchema, Entity,
+                                       EntityCreateSchema, FixedAsset,
+                                       FixedAssetCreateSchema, GSTReturn,
+                                       Inventory, InventoryCreateSchema,
+                                       Invoice, InvoiceCreateSchema,
+                                       JournalEntry, JournalEntryCreateSchema,
+                                       JournalLine, LoanCreateSchema,
+                                       QuantumJob)
+
 
 @pytest.mark.unit
 class TestEntityPydanticSchema:
@@ -27,7 +30,7 @@ class TestEntityPydanticSchema:
             name="Test Technologies Pvt Ltd",
             gstin="27AABCS1234C1Z1",
             pan="AABCS1234C",
-            tan="MUMB12345A"
+            tan="MUMB12345A",
         )
         assert schema.name == "Test Technologies Pvt Ltd"
         assert schema.gstin == "27AABCS1234C1Z1"
@@ -52,6 +55,7 @@ class TestEntityPydanticSchema:
         assert schema.currency == "INR"
         assert schema.reporting_currency == "INR"
 
+
 @pytest.mark.unit
 class TestJournalEntryPydanticSchema:
     """Test JournalEntry Pydantic schema validation"""
@@ -63,8 +67,8 @@ class TestJournalEntryPydanticSchema:
             narration="Test entry",
             lines=[
                 {"account_code": "1001", "debit": 100000, "credit": 0},
-                {"account_code": "4001", "debit": 0, "credit": 100000}
-            ]
+                {"account_code": "4001", "debit": 0, "credit": 100000},
+            ],
         )
         assert len(schema.lines) == 2
 
@@ -75,9 +79,10 @@ class TestJournalEntryPydanticSchema:
                 entry_date=date(2024, 3, 15),
                 lines=[
                     {"account_code": "1001", "debit": 100000, "credit": 0},
-                    {"account_code": "4001", "debit": 0, "credit": 50000}
-                ]
+                    {"account_code": "4001", "debit": 0, "credit": 50000},
+                ],
             )
+
 
 @pytest.mark.unit
 class TestInvoicePydanticSchema:
@@ -90,7 +95,7 @@ class TestInvoicePydanticSchema:
             invoice_date=date(2024, 3, 15),
             buyer_name="Test Customer",
             total_amount=118000.00,
-            tax_amount=18000.00
+            tax_amount=18000.00,
         )
         assert schema.invoice_no == "INV001"
         assert schema.total_amount == 118000.00
@@ -103,8 +108,9 @@ class TestInvoicePydanticSchema:
                 invoice_date=date(2024, 3, 15),
                 buyer_name="Test Customer",
                 total_amount=-1000.00,
-                tax_amount=0
+                tax_amount=0,
             )
+
 
 @pytest.mark.unit
 class TestFixedAssetPydanticSchema:
@@ -118,7 +124,7 @@ class TestFixedAssetPydanticSchema:
             cost=50000.00,
             depreciation_method="SLM",
             useful_life_years=5,
-            residual_value=5000.00
+            residual_value=5000.00,
         )
         assert schema.cost == 50000.00
         assert schema.useful_life_years == 5
@@ -129,8 +135,9 @@ class TestFixedAssetPydanticSchema:
                 entity_id=uuid.uuid4(),
                 asset_code="ASSET001",
                 cost=0,
-                useful_life_years=5
+                useful_life_years=5,
             )
+
 
 @pytest.mark.unit
 class TestInventoryPydanticSchema:
@@ -143,7 +150,7 @@ class TestInventoryPydanticSchema:
             description="Laptop",
             qty_on_hand=10,
             unit_cost=50000.00,
-            costing_method="FIFO"
+            costing_method="FIFO",
         )
         assert schema.sku == "ITEM001"
         assert schema.qty_on_hand == 10
@@ -151,11 +158,9 @@ class TestInventoryPydanticSchema:
     def test_inventory_negative_cost_raises(self):
         with pytest.raises(Exception):
             InventoryCreateSchema(
-                sku="ITEM001",
-                entity_id=uuid.uuid4(),
-                qty_on_hand=10,
-                unit_cost=-100.00
+                sku="ITEM001", entity_id=uuid.uuid4(), qty_on_hand=10, unit_cost=-100.00
             )
+
 
 @pytest.mark.unit
 class TestEmployeePydanticSchema:
@@ -168,10 +173,11 @@ class TestEmployeePydanticSchema:
             pan="ABCDE1234F",
             basic_salary=50000.00,
             hra=20000.00,
-            joined_date=date(2024, 1, 1)
+            joined_date=date(2024, 1, 1),
         )
         assert schema.name == "John Doe"
         assert schema.basic_salary == 50000.00
+
 
 @pytest.mark.unit
 class TestLoanPydanticSchema:
@@ -185,10 +191,11 @@ class TestLoanPydanticSchema:
             sanctioned_amount=5000000.00,
             rate_pct=9.5,
             tenure_months=60,
-            disbursement_date=date(2024, 1, 1)
+            disbursement_date=date(2024, 1, 1),
         )
         assert schema.sanctioned_amount == 5000000.00
         assert schema.rate_pct == 9.5
+
 
 @pytest.mark.unit
 class TestGSTReturnSchema:
@@ -196,13 +203,13 @@ class TestGSTReturnSchema:
 
     def test_gst_return_create_valid(self):
         from backend.app.models.models import GSTReturnCreateSchema
+
         schema = GSTReturnCreateSchema(
-            entity_id=uuid.uuid4(),
-            return_type="GSTR1",
-            period="2024-03"
+            entity_id=uuid.uuid4(), return_type="GSTR1", period="2024-03"
         )
         assert schema.return_type == "GSTR1"
         assert schema.period == "2024-03"
+
 
 # Integration tests (require DB)
 @pytest.mark.integration
@@ -214,6 +221,7 @@ async def test_entity_create_and_retrieve(test_session, test_utils):
     assert entity.name == "Test Technologies Pvt Ltd"
     assert entity.gstin == "27AABCS1234C1Z1"
 
+
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_journal_entry_create(test_session, test_utils):
@@ -221,6 +229,7 @@ async def test_journal_entry_create(test_session, test_utils):
     entry = await test_utils.create_test_journal_entry(test_session)
     assert entry.entry_id is not None
     assert entry.total_debit == entry.total_credit
+
 
 @pytest.mark.integration
 @pytest.mark.asyncio

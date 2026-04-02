@@ -3,10 +3,11 @@
 
 import logging
 import logging.handlers
-import sys
-import re
 import os
+import re
+import sys
 from typing import Any, Dict
+
 import structlog
 from pythonjsonlogger import jsonlogger
 
@@ -15,10 +16,10 @@ LOG_DIR = os.getenv("LOG_DIR", "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
 
 # ── PII masking patterns ──────────────────────────────────────────────────────
-_PAN_RE     = re.compile(r'\b[A-Z]{5}[0-9]{4}[A-Z]\b')
-_GSTIN_RE   = re.compile(r'\b\d{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]\b')
-_ACCOUNT_RE = re.compile(r'\b\d{9,18}\b')  # bank account numbers
-_CARD_RE    = re.compile(r'\b(?:\d[ -]?){13,16}\b')
+_PAN_RE = re.compile(r"\b[A-Z]{5}[0-9]{4}[A-Z]\b")
+_GSTIN_RE = re.compile(r"\b\d{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]\b")
+_ACCOUNT_RE = re.compile(r"\b\d{9,18}\b")  # bank account numbers
+_CARD_RE = re.compile(r"\b(?:\d[ -]?){13,16}\b")
 
 
 def _redact_string(s: str) -> str:
@@ -29,10 +30,23 @@ def _redact_string(s: str) -> str:
     return s
 
 
-def mask_pii(logger: Any, method_name: str, event_dict: Dict[str, Any]) -> Dict[str, Any]:
+def mask_pii(
+    logger: Any, method_name: str, event_dict: Dict[str, Any]
+) -> Dict[str, Any]:
     """Mask PII data in log event dicts."""
-    sensitive_keys = {'password', 'token', 'api_key', 'secret', 'pan',
-                      'gstin', 'email', 'account_no', 'card_no', 'otp', 'pin'}
+    sensitive_keys = {
+        "password",
+        "token",
+        "api_key",
+        "secret",
+        "pan",
+        "gstin",
+        "email",
+        "account_no",
+        "card_no",
+        "otp",
+        "pin",
+    }
 
     for key in list(event_dict.keys()):
         val = event_dict[key]
@@ -40,9 +54,9 @@ def mask_pii(logger: Any, method_name: str, event_dict: Dict[str, Any]) -> Dict[
 
         if any(s in lkey for s in sensitive_keys):
             if isinstance(val, str) and len(val) > 4:
-                event_dict[key] = val[:2] + '*' * (len(val) - 4) + val[-2:]
+                event_dict[key] = val[:2] + "*" * (len(val) - 4) + val[-2:]
             else:
-                event_dict[key] = '***MASKED***'
+                event_dict[key] = "***MASKED***"
         elif isinstance(val, str) and len(val) > 8:
             event_dict[key] = _redact_string(val)
 
@@ -52,26 +66,31 @@ def mask_pii(logger: Any, method_name: str, event_dict: Dict[str, Any]) -> Dict[
 # ── JSON formatter for file handlers ─────────────────────────────────────────
 class _PIIJsonFormatter(jsonlogger.JsonFormatter):
     """JSON log formatter that also redacts PII from message strings."""
-    def add_fields(self, log_record: Dict, record: logging.LogRecord, message_dict: Dict) -> None:
+
+    def add_fields(
+        self, log_record: Dict, record: logging.LogRecord, message_dict: Dict
+    ) -> None:
         super().add_fields(log_record, record, message_dict)
-        log_record['service'] = 'spoorthy-erp'
+        log_record["service"] = "spoorthy-erp"
         # Redact PII from the message field
-        if 'message' in log_record and isinstance(log_record['message'], str):
-            log_record['message'] = _redact_string(log_record['message'])
+        if "message" in log_record and isinstance(log_record["message"], str):
+            log_record["message"] = _redact_string(log_record["message"])
 
 
 # ── Audit log filter ──────────────────────────────────────────────────────────
 class _AuditFilter(logging.Filter):
     """Pass only records that have audit=True in their extra dict."""
+
     def filter(self, record: logging.LogRecord) -> bool:
-        return getattr(record, 'audit', False)
+        return getattr(record, "audit", False)
 
 
 # ── HTTP access log filter ────────────────────────────────────────────────────
 class _AccessFilter(logging.Filter):
     """Pass only records from the 'access' logger namespace."""
+
     def filter(self, record: logging.LogRecord) -> bool:
-        return record.name.startswith('access') or getattr(record, 'access', False)
+        return record.name.startswith("access") or getattr(record, "access", False)
 
 
 # ── Build rotating file handler helper ───────────────────────────────────────
@@ -86,13 +105,15 @@ def _make_rotating_handler(
         filename=os.path.join(LOG_DIR, filename),
         maxBytes=max_bytes,
         backupCount=backup_count,
-        encoding='utf-8',
+        encoding="utf-8",
     )
     handler.setLevel(level)
-    handler.setFormatter(_PIIJsonFormatter(
-        fmt='%(asctime)s %(name)s %(levelname)s %(message)s',
-        datefmt='%Y-%m-%dT%H:%M:%S%z',
-    ))
+    handler.setFormatter(
+        _PIIJsonFormatter(
+            fmt="%(asctime)s %(name)s %(levelname)s %(message)s",
+            datefmt="%Y-%m-%dT%H:%M:%S%z",
+        )
+    )
     if log_filter:
         handler.addFilter(log_filter)
     return handler
@@ -110,24 +131,26 @@ def setup_logging() -> None:
     # 1. stdout — human-readable for Docker / dev
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setLevel(logging.INFO)
-    stdout_handler.setFormatter(logging.Formatter(
-        '%(asctime)s [%(levelname)s] %(name)s — %(message)s', '%H:%M:%S'
-    ))
+    stdout_handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s [%(levelname)s] %(name)s — %(message)s", "%H:%M:%S"
+        )
+    )
     root.addHandler(stdout_handler)
 
     # 2. app.log — ALL levels, rotating at 100 MB, 30 backups (~30 days)
-    root.addHandler(_make_rotating_handler('app.log', level=logging.DEBUG))
+    root.addHandler(_make_rotating_handler("app.log", level=logging.DEBUG))
 
     # 3. errors.log — ERROR and above only
-    root.addHandler(_make_rotating_handler('errors.log', level=logging.ERROR))
+    root.addHandler(_make_rotating_handler("errors.log", level=logging.ERROR))
 
     # 4. audit.log — compliance events only (records with extra={'audit': True})
-    audit_handler = _make_rotating_handler('audit.log', level=logging.INFO)
+    audit_handler = _make_rotating_handler("audit.log", level=logging.INFO)
     audit_handler.addFilter(_AuditFilter())
     root.addHandler(audit_handler)
 
     # 5. access.log — HTTP access log only
-    access_handler = _make_rotating_handler('access.log', level=logging.INFO)
+    access_handler = _make_rotating_handler("access.log", level=logging.INFO)
     access_handler.addFilter(_AccessFilter())
     root.addHandler(access_handler)
 
@@ -162,17 +185,25 @@ def audit_log(event: str, **kwargs: Any) -> None:
     Emit a compliance-relevant audit event.
     These records pass through the AuditFilter to audit.log.
     """
-    logger = logging.getLogger('audit')
-    logger.info(event, extra={'audit': True, **kwargs})
+    logger = logging.getLogger("audit")
+    logger.info(event, extra={"audit": True, **kwargs})
 
 
-def access_log(method: str, path: str, status: int, duration_ms: float, **kwargs: Any) -> None:
+def access_log(
+    method: str, path: str, status: int, duration_ms: float, **kwargs: Any
+) -> None:
     """Emit an HTTP access log record that goes to access.log."""
-    logger = logging.getLogger('access')
+    logger = logging.getLogger("access")
     logger.info(
         f"{method} {path} {status} {duration_ms:.1f}ms",
-        extra={'access': True, 'method': method, 'path': path,
-               'status': status, 'duration_ms': duration_ms, **kwargs},
+        extra={
+            "access": True,
+            "method": method,
+            "path": path,
+            "status": status,
+            "duration_ms": duration_ms,
+            **kwargs,
+        },
     )
 
 

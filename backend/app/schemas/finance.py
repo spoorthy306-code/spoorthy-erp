@@ -1,6 +1,8 @@
-from pydantic import BaseModel
-from typing import Optional, List
 from datetime import date, datetime
+from typing import List, Optional
+
+from pydantic import BaseModel
+
 
 # Account Group Schemas
 class AccountGroupBase(BaseModel):
@@ -9,14 +11,17 @@ class AccountGroupBase(BaseModel):
     group_type: str
     parent_id: Optional[int] = None
 
+
 class AccountGroupCreate(AccountGroupBase):
     pass
 
+
 class AccountGroupRead(AccountGroupBase):
     id: int
-    
+
     class Config:
         from_attributes = True  # Changed from orm_mode
+
 
 # Ledger Schemas
 class LedgerBase(BaseModel):
@@ -27,14 +32,17 @@ class LedgerBase(BaseModel):
     opening_balance: Optional[float] = 0.0
     is_active: Optional[bool] = True
 
+
 class LedgerCreate(LedgerBase):
     pass
 
+
 class LedgerRead(LedgerBase):
     id: int
-    
+
     class Config:
         from_attributes = True
+
 
 # Party Schemas
 class PartyBase(BaseModel):
@@ -47,20 +55,24 @@ class PartyBase(BaseModel):
     gst_no: Optional[str] = None
     opening_balance: Optional[float] = 0.0
 
+
 class PartyCreate(PartyBase):
     pass
+
 
 class PartyRead(PartyBase):
     id: int
     created_at: Optional[datetime] = None
-    
+
     class Config:
         from_attributes = True
+
 
 class PartyBalance(BaseModel):
     party_id: int
     name: str
     balance: float
+
 
 # Journal Entry Schemas
 class JournalLineBase(BaseModel):
@@ -69,12 +81,14 @@ class JournalLineBase(BaseModel):
     credit: Optional[float] = 0.0
     narration: Optional[str] = None
 
+
 class JournalCreate(BaseModel):
     date: date
     narration: str
     voucher_type: str  # payment, receipt, journal, contra, etc.
     voucher_number: Optional[str] = None
     transactions: List[JournalLineBase]
+
 
 class JournalRead(BaseModel):
     id: int
@@ -84,26 +98,32 @@ class JournalRead(BaseModel):
     voucher_number: Optional[str]
     created_at: datetime
     posted: bool
-    
+
     class Config:
         from_attributes = True
+
 
 # Transaction Schemas
 class TransactionBase(BaseModel):
     pass
 
+
 class TransactionCreate(TransactionBase):
     pass
 
+
 class TransactionRead(TransactionBase):
     pass
+
 
 # Voucher Schemas
 class VoucherBase(BaseModel):
     pass
 
+
 class VoucherCreate(VoucherBase):
     pass
+
 
 class VoucherRead(VoucherBase):
     pass
@@ -117,11 +137,13 @@ class InvoiceLineCreate(BaseModel):
     amount: float
     tax_rate: float
 
+
 class InvoiceLineRead(InvoiceLineCreate):
     id: int
 
     class Config:
         from_attributes = True
+
 
 class InvoiceCreate(BaseModel):
     invoice_number: str
@@ -132,6 +154,7 @@ class InvoiceCreate(BaseModel):
     status: Optional[str] = "draft"
     lines: List[InvoiceLineCreate]
 
+
 class InvoiceRead(InvoiceCreate):
     id: int
     created_at: datetime
@@ -140,6 +163,7 @@ class InvoiceRead(InvoiceCreate):
     class Config:
         from_attributes = True
 
+
 class PaymentCreate(BaseModel):
     payment_number: str
     invoice_id: int
@@ -147,6 +171,7 @@ class PaymentCreate(BaseModel):
     payment_date: date
     method: Optional[str] = "cash"
     reference: Optional[str] = None
+
 
 class PaymentRead(PaymentCreate):
     id: int
@@ -164,11 +189,13 @@ class BillLineCreate(BaseModel):
     amount: float
     tax_rate: float
 
+
 class BillLineRead(BillLineCreate):
     id: int
 
     class Config:
         from_attributes = True
+
 
 class BillCreate(BaseModel):
     bill_number: str
@@ -179,6 +206,7 @@ class BillCreate(BaseModel):
     status: Optional[str] = "draft"
     lines: List[BillLineCreate]
 
+
 class BillRead(BillCreate):
     id: int
     created_at: datetime
@@ -187,6 +215,7 @@ class BillRead(BillCreate):
     class Config:
         from_attributes = True
 
+
 class BillPaymentCreate(BaseModel):
     payment_number: str
     bill_id: int
@@ -194,6 +223,7 @@ class BillPaymentCreate(BaseModel):
     payment_date: date
     method: Optional[str] = "bank"
     reference: Optional[str] = None
+
 
 class BillPaymentRead(BillPaymentCreate):
     id: int
@@ -211,6 +241,7 @@ class BankAccountCreate(BaseModel):
     current_balance: float = 0.0
     currency: str = "INR"
 
+
 class BankAccountRead(BankAccountCreate):
     id: int
 
@@ -223,6 +254,7 @@ class BankTransactionCreate(BaseModel):
     description: Optional[str] = None
     amount: float
     reconciled: Optional[bool] = False
+
 
 class BankTransactionRead(BankTransactionCreate):
     id: int
@@ -241,6 +273,7 @@ class FixedAssetCreate(BaseModel):
     salvage_value: float = 0.0
     useful_life: int
     depreciation_method: str = "straight_line"
+
 
 class FixedAssetRead(FixedAssetCreate):
     id: int
@@ -265,6 +298,7 @@ class BudgetCreate(BaseModel):
     account_id: int
     planned_amount: float
 
+
 class BudgetRead(BudgetCreate):
     id: int
     actual_amount: float
@@ -278,6 +312,7 @@ class TaxSettingCreate(BaseModel):
     tax_name: str
     rate: float
     applicable_accounts: Optional[str] = None
+
 
 class TaxSettingRead(TaxSettingCreate):
     id: int
@@ -299,4 +334,3 @@ class AuditLogRead(BaseModel):
 
     class Config:
         from_attributes = True
-

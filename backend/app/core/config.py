@@ -3,7 +3,9 @@
 
 import os
 from typing import List
+
 from pydantic_settings import BaseSettings
+
 
 class Settings(BaseSettings):
     # Database
@@ -90,5 +92,6 @@ class Settings(BaseSettings):
     REDIS_MAX_CONNECTIONS: int = 50
 
     model_config = {"env_file": ".env", "case_sensitive": True, "extra": "ignore"}
+
 
 settings = Settings()

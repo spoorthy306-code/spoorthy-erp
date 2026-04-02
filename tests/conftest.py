@@ -5,13 +5,13 @@ from typing import AsyncGenerator
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
+                                    create_async_engine)
 from sqlalchemy.pool import StaticPool
 
 from backend.app.db.session import get_db
 from backend.app.main import app, get_current_active_user
 from backend.app.models.models import Base, Entity, Invoice, JournalEntry
-
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./spoorthy_test.db"
 
@@ -49,7 +49,9 @@ async def test_engine():
 @pytest.fixture(scope="function")
 async def test_session(test_engine) -> AsyncGenerator[AsyncSession, None]:
     """Create per-test async session with rollback safety."""
-    factory = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+    factory = async_sessionmaker(
+        test_engine, class_=AsyncSession, expire_on_commit=False
+    )
 
     async with factory() as session:
         yield session
@@ -126,7 +128,9 @@ def sample_invoice_data():
 
 class TestUtils:
     @staticmethod
-    async def create_test_entity(session: AsyncSession, entity_data: dict | None = None) -> Entity:
+    async def create_test_entity(
+        session: AsyncSession, entity_data: dict | None = None
+    ) -> Entity:
         if entity_data is None:
             entity_data = {
                 "name": "Test Technologies Pvt Ltd",
@@ -164,7 +168,9 @@ class TestUtils:
         return entry
 
     @staticmethod
-    async def create_test_invoice(session: AsyncSession, invoice_data: dict | None = None) -> Invoice:
+    async def create_test_invoice(
+        session: AsyncSession, invoice_data: dict | None = None
+    ) -> Invoice:
         if invoice_data is None:
             entity = await TestUtils.create_test_entity(session)
             invoice_data = {

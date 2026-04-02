@@ -1237,7 +1237,6 @@ elif "DMS" in page or "PDF" in page:
                 st.success(f"✅ Extracted {len(extracted)} chars via {method}")
 
                 # Parse fields with regex
-                import re
 
                 def find(patterns, text):
                     for pat in patterns:
@@ -1273,7 +1272,6 @@ elif "DMS" in page or "PDF" in page:
                 st.text_area("Raw Extracted Text", extracted[:3000] + ("..." if len(extracted) > 3000 else ""), height=200)
 
                 # Store doc in DB
-                import hashlib
                 with open(file_path,"rb") as f:
                     fhash = hashlib.md5(f.read()).hexdigest()
 
