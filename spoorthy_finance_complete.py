@@ -4101,7 +4101,7 @@ def run_demo_part1():
     print(f"M29 CRM:            Health={health['health_score']} | Churn: {health['churn_risk']} | Upsell: {health['upsell_potential']}")
 
     leads = LeadManagementModule("DEMO")
-    lead = leads.capture_lead({"email":"cfo@tatasteel.com","company_revenue":10_000_000,"employees":500,"segment":"ENTERPRISE"},"WEBSITE")
+    lead = leads.capture_lead({"email":"spoorthy306@gmail.com","company_revenue":10_000_000,"employees":500,"segment":"ENTERPRISE"},"WEBSITE")
     scored = leads.quantum_score_lead(lead["lead_id"])
     print(f"M30 Lead Scoring:   Grade {scored['grade']} ({scored['score']}/100) | Qualified: {scored['qualified']}")
 
@@ -4127,7 +4127,7 @@ def run_demo_part1():
 
     ats = RecruitmentATS("DEMO")
     vac = ats.post_vacancy("Senior Accountant","Finance",["GST","Tally","IFRS"],(60000,90000),"We need...")
-    ats.submit_application(vac["vacancy_id"],{"name":"Ananya Patel","email":"a@p.com"},"GST expert with Tally experience and IFRS knowledge")
+    ats.submit_application(vac["vacancy_id"],{"name":"Ananya Patel","email":"spoorthy306@gmail.com"},"GST expert with Tally experience and IFRS knowledge")
     shortlist = ats.ai_cv_screening(vac["vacancy_id"])
     print(f"M36 ATS:            Shortlisted {shortlist['shortlisted']}/{shortlist['total_applications']} | {shortlist['screened_by']}")
 
@@ -5504,7 +5504,7 @@ def run_demo_part2():
     # Healthcare
     print("\n── INDUSTRY VERTICALS (M51–M64) ────────────────────────────────")
     hosp = HealthcareERP("AIIMS-DEMO")
-    pat  = hosp.register_patient({"name":"Ravi Kumar","age":55,"comorbidities":["diabetes","hypertension"]},"ABHA-1234567890")
+    pat  = hosp.register_patient({"name":"Ravi Kumar","age":55,"comorbidities":["diabetes","hypertension"]},"ABHA-REDACTED")
     risk = hosp.quantum_risk_score(pat["patient_id"],["chest_pain","shortness_of_breath"])
     print(f"M51 Healthcare:     Risk={risk['risk_score']} ({risk['category']}) | Solver: {risk['solver']}")
 
@@ -5594,7 +5594,7 @@ def run_demo_part2():
     print(f"M75 LATAM:          NF-e Brazil chave={nfe['chave_acesso'][:12]}... | Mexico CFDI UUID={cfdi['uuid'][:12]}...")
 
     gcc = GCCMiddleEastERP("DEMO-SA","SA")
-    zatca = gcc.zatca_einvoice({"trn":"300123456789003","net":100000})
+    zatca = gcc.zatca_einvoice({"trn":"300000000000003","net":100000})
     uae_tax = gcc.uae_corporate_tax(500_000)
     print(f"M76 GCC:            ZATCA cleared ₹{zatca['vat_15pct']:,} VAT | UAE Corp Tax {uae_tax['tax_due_aed']:,.0f} AED")
 
@@ -5604,7 +5604,7 @@ def run_demo_part2():
     print(f"M79 SEA:            SG GST: {sg_inv['vat_rate_pct']}% | ID PPN: {id_inv['vat_rate_pct']}% | 6 countries covered")
 
     ee = EasternEuropeERP("DEMO-PL","PL")
-    ksef = ee.poland_ksef({"nip":"1234567890","net":50000})
+    ksef = ee.poland_ksef({"nip":"0000000000","net":50000})
     hun  = ee.hungary_online_invoice({"vat_no":"HU12345678","net":100000})
     print(f"M80 E.Europe:       KSeF: {ksef['ksef_number'][:20]}... | Hungary 27% VAT: {hun['vat_27pct']:,} HUF")
 
@@ -11058,7 +11058,7 @@ def run_demo_part5():
     inv_engine = MasterInvoiceEngine(
         "27AABCS1234C1Z1","Spoorthy Technologies Pvt Ltd","Spoorthy",
         {"line1":"501 Tech Park","city":"Mumbai","state":"Maharashtra",
-         "pin":"400001","email":"billing@spoorthy.in"},
+         "pin":"400001","email":"spoorthy306@gmail.com"},
         {"bank":"HDFC Bank","account":"50200012345678",
          "ifsc":"HDFC0001234","branch":"Bandra West"}
     )

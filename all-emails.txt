@@ -1,0 +1,26 @@
+E:\ERP\spoorthy-erp\backend\app\api\auth.py:17: "email": "spoorthy306@gmail.com",
+E:\ERP\spoorthy-erp\backend\app\core\config.py:83: SMTP_FROM: str = "noreply@spoorthy.com"
+E:\ERP\spoorthy-erp\backend\app\db\seed_masters.py:100: email="info@spoorthy.erp",
+E:\ERP\spoorthy-erp\db\seed.py:82: email="accounts@spoorthy.in",
+E:\ERP\spoorthy-erp\db\seed.py:124: email="admin@spoorthy.in",
+E:\ERP\spoorthy-erp\db\seed.py:147: email="gst@spoorthy.in",
+E:\ERP\spoorthy-erp\ui\react\src\services\auth.service.ts:7: email: 'spoorthy306@gmail.com',
+E:\ERP\spoorthy-erp\ui\react\src\store\authStore.ts:10: email: 'spoorthy306@gmail.com',
+E:\ERP\spoorthy-erp\ui\react\src-tauri\tauri.conf.json:32: "icons/128x128@2x.png",
+E:\ERP\spoorthy-erp\app.py:1836: email = st.text_input("Email", value=profile.email if profile else "info@spoorthy.erp")
+E:\ERP\spoorthy-erp\app.py:2256: c_email   = st.text_input("Email", value=company.email or "" if company else "", placeholder="accounts@milvian.com")
+E:\ERP\spoorthy-erp\app.py:2398: u_email     = st.text_input("Email *", placeholder="anil@milvian.com")
+E:\ERP\spoorthy-erp\init_db.py:45: email="admin@spoorthy.com",
+E:\ERP\spoorthy-erp\init_db.py:62: email="accountant@spoorthy.com",
+E:\ERP\spoorthy-erp\main.py:59: to="customer@example.com",
+E:\ERP\spoorthy-erp\main.py:67: to="employee@example.com",
+E:\ERP\spoorthy-erp\monitoring.py:402: smtp_from: 'alerts@spoorthy.com'
+E:\ERP\spoorthy-erp\monitoring.py:403: smtp_auth_username: 'alerts@spoorthy.com'
+E:\ERP\spoorthy-erp\monitoring.py:420: - to: 'team@spoorthy.com'
+E:\ERP\spoorthy-erp\monitoring.py:431: - to: 'critical@spoorthy.com'
+E:\ERP\spoorthy-erp\payroll_ui.py:359: ne_email  = st.text_input("Work Email", placeholder="name@company.com")
+E:\ERP\spoorthy-erp\settings_ui.py:176: email    = st.text_input("Email", value=company.email or "" if company else "", placeholder="accounts@milvian.com")
+E:\ERP\spoorthy-erp\settings_ui.py:431: u_em   = st.text_input("Email *", placeholder="anil@milvian.com")
+E:\ERP\spoorthy-erp\spoorthy_finance_complete.py:4104: lead = leads.capture_lead({"email":"cfo@tatasteel.com","company_revenue":10_000_000,"employees":500,"segment":"ENTERPRISE"},"WEBSITE")
+E:\ERP\spoorthy-erp\spoorthy_finance_complete.py:4130: ats.submit_application(vac["vacancy_id"],{"name":"Ananya Patel","email":"a@p.com"},"GST expert with Tally experience and IFRS knowledge")
+E:\ERP\spoorthy-erp\spoorthy_finance_complete.py:11061: "pin":"400001","email":"billing@spoorthy.in"},

@@ -96,11 +96,11 @@ def _ensure_defaults():
             db.add(CompanyProfile(
                 name="Spoorthy Solutions Pvt Ltd",
                 address="Plot 42, Tech Park, Hyderabad, 500081",
-                phone="+91 98765 43210",
-                email="info@spoorthy.erp",
+                phone="",
+                email="spoorthy306@gmail.com",
                 gstin="36ABCDE1234F1Z5",
                 logo_path="static/logo.png",
-                bank_details="Bank: ICICI Bank, A/c: 1234567890, IFSC: ICIC0000001"
+                bank_details="Bank: ICICI Bank, A/c: 0000000000, IFSC: ICIC0000001"
             ))
         db.commit()
 

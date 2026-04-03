@@ -1,47 +1,44 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { User } from '@/types';
 
-export interface AuthUser {
-  user_id: string;
-  username: string;
-  email: string;
-  roles: string[];
-}
+const ACCESS_TOKEN_KEY = 'access_token';
+
+export const DEFAULT_CREDENTIALS = {
+  username: 'admin',
+  password: 'admin123',
+  email: 'spoorthy306@gmail.com',
+} as const;
 
 interface AuthStore {
-  user: AuthUser | null;
-  token: string | null;
-  refreshToken: string | null;
-  permissions: string[];
-  setAuth: (user: AuthUser, token: string, refreshToken?: string) => void;
+  user: User | null;
+  accessToken: string | null;
+  isAuthenticated: boolean;
+  defaultCredentials: typeof DEFAULT_CREDENTIALS;
+  setAuth: (user: User | null, accessToken: string) => void;
   clearAuth: () => void;
-  hasRole: (role: string) => boolean;
 }
 
 export const useAuthStore = create<AuthStore>()(
   persist(
-    (set, get) => ({
-      user:         null,
-      token:        null,
-      refreshToken: null,
-      permissions:  [],
+    (set) => ({
+      user: null,
+      accessToken: null,
+      isAuthenticated: false,
+      defaultCredentials: DEFAULT_CREDENTIALS,
 
-      setAuth: (user, token, refreshToken) =>
-        set({ user, token, refreshToken: refreshToken ?? null, permissions: user.roles }),
+      setAuth: (user, accessToken) => {
+        localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+        set({ user, accessToken, isAuthenticated: true });
+      },
 
-      clearAuth: () =>
-        set({ user: null, token: null, refreshToken: null, permissions: [] }),
-
-      hasRole: (role) => get().permissions.includes(role),
+      clearAuth: () => {
+        localStorage.removeItem(ACCESS_TOKEN_KEY);
+        set({ user: null, accessToken: null, isAuthenticated: false });
+      },
     }),
     {
       name: 'spoorthy-auth',
-      partialize: (state) => ({
-        user:         state.user,
-        token:        state.token,
-        refreshToken: state.refreshToken,
-        permissions:  state.permissions,
-      }),
     }
   )
 );

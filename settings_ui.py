@@ -172,8 +172,8 @@ def _section_organization(db):
                 ind_idx  = INDUSTRIES.index(company.industry) if company and company.industry in INDUSTRIES else 0
                 industry = st.selectbox("Industry", ind_list, index=ind_idx)
                 reg_date = st.date_input("Date of Incorporation", value=company.reg_date or date(2020, 5, 14) if company else date(2020, 5, 14), format="DD/MM/YYYY")
-                phone    = st.text_input("Phone", value=company.phone or "" if company else "", placeholder="+91 40 2345 6789")
-                email    = st.text_input("Email", value=company.email or "" if company else "", placeholder="accounts@milvian.com")
+                phone    = st.text_input("Phone", value=company.phone or "" if company else "", placeholder="spoorthy306@gmail.com")
+                email    = st.text_input("Email", value=company.email or "" if company else "", placeholder="spoorthy306@gmail.com")
                 website  = st.text_input("Website", value=company.website or "" if company else "", placeholder="https://milvian.com")
                 curr_idx = ["INR","USD","EUR","GBP","AED"].index(company.currency) if company and company.currency in ["INR","USD","EUR","GBP","AED"] else 0
                 currency = st.selectbox("Base Currency", ["INR","USD","EUR","GBP","AED"], index=curr_idx)
@@ -307,7 +307,7 @@ def _section_organization(db):
                 st_idx   = next((i for i, s in enumerate(STATES) if s.startswith(cur_sc + "-")), 35)
                 l_state  = st.selectbox("State", STATES, index=st_idx)
                 l_pin    = st.text_input("Pincode", placeholder="500081")
-                l_phone  = st.text_input("Phone", placeholder="+91 40 6789 0000")
+                l_phone  = st.text_input("Phone", placeholder="spoorthy306@gmail.com")
                 l_primary= st.checkbox("Set as Primary Location", value=not bool(locs))
             add_loc = st.form_submit_button("➕ Add Location")
         if add_loc:
@@ -428,8 +428,8 @@ def _section_users_roles(db):
             with uc1:
                 u_un   = st.text_input("Username *", placeholder="anil.kumar")
                 u_fn   = st.text_input("Full Name *", placeholder="Kakarala Anil Kumar")
-                u_em   = st.text_input("Email *", placeholder="anil@milvian.com")
-                u_ph   = st.text_input("Phone", placeholder="+91 98765 43210")
+                u_em   = st.text_input("Email *", placeholder="spoorthy306@gmail.com")
+                u_ph   = st.text_input("Phone", placeholder="")
             with uc2:
                 u_role = st.selectbox("Role *", role_names)
                 u_pw   = st.text_input("Password *", type="password", placeholder="min 6 characters")

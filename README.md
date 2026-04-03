@@ -345,8 +345,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Slack Community](https://spoorthy-erp.slack.com)
 
 ### Enterprise Support
-- Email: enterprise@spoorthy.com
-- Phone: +91-22-1234-5678
+- Email: spoorthy306@gmail.com
+- Phone: spoorthy306@gmail.com
 - Portal: https://support.spoorthy.com
 
 ## 🙏 Acknowledgments

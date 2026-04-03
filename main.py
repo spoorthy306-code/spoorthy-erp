@@ -56,7 +56,7 @@ def send_email(
 
     Example — send a sales invoice PDF:
         send_email(
-            to="customer@example.com",
+            to="spoorthy306@gmail.com",
             subject="Invoice SPRY/SINV/2025-26/000001",
             body_html="<p>Dear Customer,<br>Please find your invoice attached.</p>",
             attachment_path="/tmp/invoice_001.pdf",
@@ -64,7 +64,7 @@ def send_email(
 
     Example — send a payroll slip:
         send_email(
-            to="employee@example.com",
+            to="spoorthy306@gmail.com",
             subject="Salary Slip – March 2026",
             body_html="<p>Dear Employee,<br>Your payroll slip is attached.</p>",
             attachment_path="/tmp/payslip_march2026.pdf",

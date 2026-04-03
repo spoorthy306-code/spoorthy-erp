@@ -1,5 +1,4 @@
 export { useAuthStore } from './authStore';
-export type { AuthUser } from './authStore';
 export { useEntityStore } from './entityStore';
 export type { Entity } from './entityStore';
 export { useUIStore } from './uiStore';

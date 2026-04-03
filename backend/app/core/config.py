@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
-    SMTP_FROM: str = "noreply@spoorthy.com"
+    SMTP_FROM: str = "spoorthy306@gmail.com"
 
     # Environment
     ENVIRONMENT: str = "development"

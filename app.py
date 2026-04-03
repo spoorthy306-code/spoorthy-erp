@@ -596,6 +596,9 @@ with st.sidebar:
 # PAGE 1 — DASHBOARD
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def new_func(ann_dep):
+    return ann_dep
+
 if "Dashboard" in page:
     import plotly.graph_objects as go
     import plotly.express as px
@@ -1597,8 +1600,9 @@ elif "Reports" in page:
                         Voucher.voucher_date <= to_date,
                         Voucher.status == "POSTED"
                     ).all()
-                    dr = sum(_f(t.debit) for t in txns) + (_f(led.opening_balance) if led.opening_type == "Dr" else 0)
-                    cr = sum(_f(t.credit) for t in txns) + (_f(led.opening_balance) if led.opening_type == "Cr" else 0)
+                    opening_type = str(led.opening_type or "").strip()
+                    dr = sum(_f(t.debit) for t in txns) + (_f(led.opening_balance) if opening_type == "Dr" else 0)
+                    cr = sum(_f(t.credit) for t in txns) + (_f(led.opening_balance) if opening_type == "Cr" else 0)
                     net= dr - cr
                     if net != 0:
                         grp = db.query(AccountGroup).filter_by(id=led.group_id).first()
@@ -1721,8 +1725,9 @@ elif "Reports" in page:
                     recent_orders = db.query(Order).order_by(Order.created_at.desc()).limit(10).all()
                 else:
                     st.warning("Order model unavailable (backend import failed). Invoice report is disabled.")
-                default_order_id = recent_orders[0].id if recent_orders else 1
-                order_id = st.number_input("Order ID", value=default_order_id, min_value=1, step=1)
+                # Extract the scalar ID value from the Order object
+                default_order_id_value = int(recent_orders[0].id) if recent_orders else 1
+                order_id = int(st.number_input("Order ID", value=float(default_order_id_value), min_value=1.0, step=1.0, format="%.0f"))
 
                 selected_order = None
                 if Order is not None:
@@ -1735,7 +1740,7 @@ elif "Reports" in page:
                     info_cols[1].metric("Subtotal", fmt_inr(_f(selected_order.subtotal)))
                     info_cols[2].metric("Tax", fmt_inr(_f(selected_order.tax_amount)))
                     info_cols[3].metric("Total", fmt_inr(_f(selected_order.total_amount)))
-                    if OrderStatus is not None and selected_order.status != OrderStatus.completed:
+                    if OrderStatus is not None and status_value != "completed":
                         st.warning("This order is not completed yet. You can still generate a draft invoice, but journal posting is normally tied to completed orders.")
                 else:
                     st.info("Select a valid order ID to preview and download its invoice.")
@@ -1754,6 +1759,11 @@ elif "Reports" in page:
                             st.session_state["current_invoice_pdf_name"] = f"Invoice_{order_id}.pdf"
                         except Exception as e:
                             st.error(f"Invoice generation failed: {e}")
+
+                if selected_order:
+                    status_value = selected_order.status.value if hasattr(selected_order.status, "value") else str(selected_order.status)
+                    if OrderStatus is not None and status_value != "completed":
+                        st.warning("This order is not completed yet. You can still generate a draft invoice, but journal posting is normally tied to completed orders.")
 
                 if st.session_state.get("current_invoice_pdf_bytes"):
                     st.download_button(
@@ -1785,12 +1795,15 @@ elif "Reports" in page:
                         index=0,
                     )
                     if st.button("Download Selected Recent Invoice"):
-                        quick_order = db.query(Order).filter_by(id=quick_order_id).first()
-                        if quick_order:
-                            pdf_path = InvoiceService.generate_pdf(quick_order, filename=f"Invoice_{quick_order_id}.pdf")
-                            with open(pdf_path, "rb") as f:
-                                st.session_state["recent_invoice_pdf_bytes"] = f.read()
-                            st.session_state["recent_invoice_pdf_name"] = f"Invoice_{quick_order_id}.pdf"
+                        if Order is not None and InvoiceService is not None:
+                            quick_order = db.query(Order).filter_by(id=quick_order_id).first()
+                            if quick_order:
+                                pdf_path = InvoiceService.generate_pdf(quick_order, filename=f"Invoice_{quick_order_id}.pdf")
+                                with open(pdf_path, "rb") as f:
+                                    st.session_state["recent_invoice_pdf_bytes"] = f.read()
+                                st.session_state["recent_invoice_pdf_name"] = f"Invoice_{quick_order_id}.pdf"
+                        else:
+                            st.error("Order model unavailable (backend import failed).")
 
                     if st.session_state.get("recent_invoice_pdf_bytes"):
                         st.download_button(
@@ -1819,57 +1832,66 @@ elif "Reports" in page:
                     address = st.text_area("Address", value=profile.address if profile else "Plot 42, Tech Park, Hyderabad, 500081")
                     col1, col2 = st.columns(2)
                     with col1:
-                        phone = st.text_input("Phone", value=profile.phone if profile else "+91 98765 43210")
-                        email = st.text_input("Email", value=profile.email if profile else "info@spoorthy.erp")
+                        phone = st.text_input("Phone", value=profile.phone if profile else "")
+                        email = st.text_input("Email", value=profile.email if profile else "spoorthy306@gmail.com")
                         gstin = st.text_input("GSTIN", value=profile.gstin if profile else "36ABCDE1234F1Z5")
                     with col2:
                         website = st.text_input("Website", value=profile.website if profile else "")
                         logo_path = st.text_input("Logo Path", value=profile.logo_path if profile else "static/logo.png")
                         bank_details = st.text_area(
                             "Bank Details",
-                            value=profile.bank_details if profile else "Bank: ICICI Bank, A/c: 1234567890, IFSC: ICIC0000001",
+                            value=profile.bank_details if profile else "Bank: ICICI Bank, A/c: 0000000000, IFSC: ICIC0000001",
                         )
                     save_profile = st.form_submit_button("Save Company Profile", use_container_width=True)
 
                 if save_profile:
-                    if profile:
-                        profile.name = name
-                        profile.address = address
-                        profile.phone = phone
-                        profile.email = email
-                        profile.gstin = gstin
-                        profile.website = website
-                        profile.logo_path = logo_path
-                        profile.bank_details = bank_details
+                    if not name:
+                        st.error("Company name is required.")
+                    elif CompanyProfile is None:
+                        st.error("CompanyProfile model is not available. Backend import failed.")
                     else:
-                        profile = CompanyProfile(
-                            name=name,
-                            address=address,
-                            phone=phone,
-                            email=email,
-                            gstin=gstin,
-                            website=website,
-                            logo_path=logo_path,
-                            bank_details=bank_details,
-                        )
-                        db.add(profile)
-                    db.commit()
-                    st.success("Company profile saved successfully.")
+                        try:
+                            if profile:
+                                profile.name = name  # type: ignore
+                                profile.address = address  # type: ignore
+                                profile.phone = phone  # type: ignore
+                                profile.email = email  # type: ignore
+                                profile.gstin = gstin if gstin else None  # type: ignore
+                                profile.website = website if website else None  # type: ignore
+                                profile.logo_path = logo_path if logo_path else None  # type: ignore
+                                profile.bank_details = bank_details if bank_details else None  # type: ignore
+                            else:
+                                profile = CompanyProfile(
+                                    name=name,
+                                    address=address,
+                                    phone=phone,
+                                    email=email,
+                                    gstin=gstin,
+                                    website=website,
+                                    logo_path=logo_path,
+                                    bank_details=bank_details,
+                                )
+                                db.add(profile)
+                            db.commit()
+                            st.success("Company profile saved successfully.")
+                        except Exception as e:
+                            st.error(f"Failed to save company profile: {e}")
 
-                preview = db.query(CompanyProfile).first()
-                if preview:
-                    st.markdown("#### Current Profile")
-                    preview_rows = [{
-                        "Name": preview.name,
-                        "GSTIN": preview.gstin or "-",
-                        "Phone": preview.phone or "-",
-                        "Email": preview.email or "-",
-                        "Website": preview.website or "-",
-                        "Logo Path": preview.logo_path or "-",
-                        "Address": preview.address,
-                        "Bank Details": preview.bank_details or "-",
-                    }]
-                    st.dataframe(pd.DataFrame(preview_rows), use_container_width=True, hide_index=True)
+                if CompanyProfile is not None:
+                    preview = db.query(CompanyProfile).first()
+                    if preview:
+                        st.markdown("#### Current Profile")
+                        preview_rows = [{
+                            "Name": preview.name,
+                            "GSTIN": preview.gstin or "-",
+                            "Phone": preview.phone or "-",
+                            "Email": preview.email or "-",
+                            "Website": preview.website or "-",
+                            "Logo Path": preview.logo_path or "-",
+                            "Address": preview.address,
+                            "Bank Details": preview.bank_details or "-",
+                        }]
+                        st.dataframe(pd.DataFrame(preview_rows), use_container_width=True, hide_index=True)
 
             elif report_type == "GST Summary (GSTR-3B)":
                 st.markdown(f"### GST Summary — {from_date} to {to_date}")
@@ -1940,12 +1962,14 @@ elif "Reports" in page:
                     for t in txns:
                         v = db.query(Voucher).filter_by(id=t.voucher_id).first()
                         balance += _f(t.debit) - _f(t.credit)
+                        debit_val = _f(t.debit)
+                        credit_val = _f(t.credit)
                         rows.append({
                             "Date": fmt_date(v.voucher_date) if v else "",
-                            "Voucher No": v.voucher_no if v else "",
-                            "Narration": (v.narration or "")[:60] if v else "",
-                            "Dr": fmt_inr(t.debit)  if t.debit  else "",
-                            "Cr": fmt_inr(t.credit) if t.credit else "",
+                            "Voucher No": str(v.voucher_no) if (v is not None and v.voucher_no is not None) else "",
+                            "Narration": str(v.narration or "")[:60] if v else "",
+                            "Dr": fmt_inr(debit_val) if debit_val > 0 else "",
+                            "Cr": fmt_inr(credit_val) if credit_val > 0 else "",
                             "Balance": fmt_inr(balance),
                         })
                     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
@@ -1986,7 +2010,7 @@ elif "Reports" in page:
                 rows = []
                 for v in vouchers:
                     vdate = v.voucher_date.date() if isinstance(v.voucher_date, datetime) else v.voucher_date
-                    age = (to_date - vdate).days if vdate else 0
+                    age = (to_date - vdate).days if vdate is not None else 0
                     amt = _f(v.total_amount)
                     bkt = ("0-30" if age<=30 else "31-60" if age<=60
                            else "61-90" if age<=90 else "91-180" if age<=180 else "180+")
@@ -2138,14 +2162,14 @@ elif "Fixed Assets" in page:
             total_dep_jv = 0.0
             jv_entries = []
             for a in assets:
-                if a.book_value > 0:
-                    if a.depreciation_method == "SLM":
+                if _f(a.book_value) > 0:
+                    if str(a.depreciation_method) == "SLM":
                         ann_dep = (_f(a.cost) - _f(a.salvage_value)) / max(a.useful_life_yrs, 1)
                     else:
                         rate = _f(a.wdv_rate or 20) / 100
                         ann_dep = _f(a.book_value) * rate
                     bv = _f(a.book_value)
-                    ann_dep = round(min(ann_dep, bv), 2)
+                    ann_dep = round(min(float(new_func(ann_dep)), _f(bv)), 2)
                     if ann_dep > 0:
                         total_dep_jv += ann_dep
                         # Update FA record
@@ -2206,24 +2230,39 @@ elif "Company Setup" in page:
 
         with st.form("company_form"):
             st.markdown("#### 🏢 Basic Details")
+            if company is not None and company.reg_date is not None:
+                reg_date_val = company.reg_date
+                if isinstance(reg_date_val, datetime):
+                    reg_date_val = reg_date_val.date()
+                elif not isinstance(reg_date_val, date):
+                    reg_date_val = date(2020, 1, 1)
+            else:
+                reg_date_val = date(2020, 1, 1)
             col1, col2 = st.columns(2)
             with col1:
-                c_name    = st.text_input("Company Display Name *", value=company.name if company else "", placeholder="Milvian Technologies Pvt Ltd")
-                c_legal   = st.text_input("Legal / Registered Name", value=company.legal_name or "" if company else "", placeholder="MILVIAN TECHNOLOGIES PRIVATE LIMITED")
-                c_gstin   = st.text_input("GSTIN", value=company.gstin or "" if company else "", placeholder="36AATCM3488J1ZN")
-                c_pan     = st.text_input("PAN", value=company.pan or "" if company else "", placeholder="AATCM3488J")
-                c_cin     = st.text_input("CIN (Company ID No)", value=company.cin or "" if company else "", placeholder="U72900TG2020PTC140XXX")
-                c_tan     = st.text_input("TAN", value=company.tan or "" if company else "", placeholder="HYDA12345A")
+                c_name    = st.text_input("Company Display Name *", value=company.name if company is not None else "", placeholder="Milvian Technologies Pvt Ltd")
+                c_legal   = st.text_input("Legal / Registered Name", value=company.legal_name or "" if company is not None else "", placeholder="MILVIAN TECHNOLOGIES PRIVATE LIMITED")
+                c_gstin   = st.text_input("GSTIN", value=company.gstin or "" if company is not None else "", placeholder="36AATCM3488J1ZN")
+                c_pan     = st.text_input("PAN", value=company.pan or "" if company is not None else "", placeholder="AATCM3488J")
+                c_cin     = st.text_input("CIN (Company ID No)", value=company.cin or "" if company is not None else "", placeholder="U72900TG2020PTC140XXX")
+                c_tan     = st.text_input("TAN", value=company.tan or "" if company is not None else "", placeholder="HYDA12345A")
+                c_reg_date= st.date_input("Date of Incorporation", value=reg_date_val, format="DD/MM/YYYY")
             with col2:
-                c_industry= st.selectbox("Industry", ["IT / Technology", "Manufacturing", "Trading", "Services", "Construction", "Healthcare", "Education", "Finance", "Other"],
-                                         index=0 if not company or not company.industry else
-                                         ["IT / Technology","Manufacturing","Trading","Services","Construction","Healthcare","Education","Finance","Other"].index(company.industry) if company.industry in ["IT / Technology","Manufacturing","Trading","Services","Construction","Healthcare","Education","Finance","Other"] else 0)
-                c_reg_date= st.date_input("Date of Incorporation", value=company.reg_date or date(2020,1,1) if company else date(2020,1,1), format="DD/MM/YYYY")
-                c_phone   = st.text_input("Phone", value=company.phone or "" if company else "", placeholder="+91 40 2345 6789")
-                c_email   = st.text_input("Email", value=company.email or "" if company else "", placeholder="accounts@milvian.com")
+                industry_options = ["IT / Technology", "Manufacturing", "Trading", "Services", "Construction", "Healthcare", "Education", "Finance", "Other"]
+                comp_industry = str(company.industry) if company is not None and company.industry is not None else None
+                industry_index = industry_options.index(comp_industry) if comp_industry and comp_industry in industry_options else 0
+                c_industry= st.selectbox("Industry", industry_options, index=industry_index)
+                c_phone   = st.text_input("Phone", value=company.phone or "" if company else "", placeholder="spoorthy306@gmail.com")
+                c_email   = st.text_input("Email", value=company.email or "" if company else "", placeholder="spoorthy306@gmail.com")
                 c_website = st.text_input("Website", value=company.website or "" if company else "", placeholder="https://milvian.com")
                 c_currency= st.selectbox("Base Currency", ["INR","USD","EUR","GBP","AED"],
-                                         index=["INR","USD","EUR","GBP","AED"].index(company.currency) if company and company.currency in ["INR","USD","EUR","GBP","AED"] else 0)
+                                         index=["INR","USD","EUR","GBP","AED"].index(str(company.currency)) if company and str(company.currency) in ["INR","USD","EUR","GBP","AED"] else 0)
+                if company is not None and company.reg_date is not None:
+                    reg_date_val = company.reg_date
+                    if isinstance(reg_date_val, datetime):
+                        reg_date_val = reg_date_val.date()
+                else:
+                    reg_date_val = date(2020, 1, 1)
 
             st.markdown("#### 📍 Registered Address")
             col3, col4 = st.columns(2)
@@ -2249,26 +2288,36 @@ elif "Company Setup" in page:
                 state_code = c_state.split("-")[0]
                 fy_start   = "04-01" if "April" in c_fy else "01-01"
                 if is_new:
-                    db.add(Company(
-                        name=c_name, legal_name=c_legal, gstin=c_gstin or None,
-                        pan=c_pan or None, cin=c_cin or None, tan=c_tan or None,
-                        address_line1=c_addr1, address_line2=c_addr2, city=c_city,
-                        state_code=state_code, pincode=c_pincode,
-                        phone=c_phone, email=c_email, website=c_website,
-                        currency=c_currency, industry=c_industry,
-                        reg_date=c_reg_date, fiscal_year_start=fy_start,
-                        date_format="DD-MM-YYYY", is_setup_done=True,
-                    ))
-                else:
-                    company.name=c_name; company.legal_name=c_legal
-                    company.gstin=c_gstin or None; company.pan=c_pan or None
-                    company.cin=c_cin or None; company.tan=c_tan or None
-                    company.address_line1=c_addr1; company.address_line2=c_addr2
-                    company.city=c_city; company.state_code=state_code; company.pincode=c_pincode
-                    company.phone=c_phone; company.email=c_email; company.website=c_website
-                    company.currency=c_currency; company.industry=c_industry
-                    company.reg_date=c_reg_date; company.fiscal_year_start=fy_start
-                    company.is_setup_done=True
+                            db.add(Company(
+                                name=c_name, legal_name=c_legal, gstin=c_gstin or None,
+                                pan=c_pan or None, cin=c_cin or None, tan=c_tan or None,
+                                address_line1=c_addr1, address_line2=c_addr2, city=c_city,
+                                state_code=state_code, pincode=c_pincode,
+                                phone=c_phone, email=c_email, website=c_website,
+                                currency=c_currency, industry=c_industry,
+                                reg_date=c_reg_date, fiscal_year_start=fy_start,
+                                date_format="DD-MM-YYYY", is_setup_done=True,
+                            ))
+                        else:
+                            company.name = c_name  # type: ignore
+                            company.legal_name = c_legal or None  # type: ignore
+                            company.gstin = c_gstin or None  # type: ignore
+                            company.pan = c_pan or None  # type: ignore
+                            company.cin = c_cin or None  # type: ignore
+                            company.tan = c_tan or None  # type: ignore
+                            company.address_line1 = c_addr1 or None  # type: ignore
+                            company.address_line2 = c_addr2 or None  # type: ignore
+                            company.city = c_city or None  # type: ignore
+                            company.state_code = state_code or None  # type: ignore
+                            company.pincode = c_pincode or None  # type: ignore
+                            company.phone = c_phone or None  # type: ignore
+                            company.email = c_email or None  # type: ignore
+                            company.website = c_website or None  # type: ignore
+                            company.currency = c_currency or None  # type: ignore
+                            company.industry = c_industry or None  # type: ignore
+                            company.reg_date = c_reg_date  # type: ignore
+                            company.fiscal_year_start = fy_start or None  # type: ignore
+                            company.is_setup_done = True  # type: ignore
                 db.commit()
                 st.success(f"✅ Company **{c_name}** saved!")
                 st.rerun()
@@ -2346,7 +2395,7 @@ elif "Users & Roles" in page:
             with col1:
                 u_username  = st.text_input("Username *", placeholder="anil.kumar")
                 u_fullname  = st.text_input("Full Name *", placeholder="Kakarala Anil Kumar")
-                u_email     = st.text_input("Email *", placeholder="anil@milvian.com")
+                u_email     = st.text_input("Email *", placeholder="spoorthy306@gmail.com")
             with col2:
                 role_names  = [r.name for r in roles]
                 u_role      = st.selectbox("Role *", role_names)

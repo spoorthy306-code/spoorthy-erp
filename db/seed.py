@@ -78,8 +78,8 @@ def _seed_company(db, force):
         state_code="36",
         pincode="500081",
         country="India",
-        phone="+91-40-12345678",
-        email="accounts@spoorthy.in",
+        phone="",
+        email="spoorthy306@gmail.com",
         website="https://spoorthy.in",
         fiscal_year_start="04-01",
         currency="INR",
@@ -121,7 +121,7 @@ def _seed_admin_user(db, force):
     db.add(AppUser(
         username="admin",
         full_name="System Administrator",
-        email="admin@spoorthy.in",
+        email="spoorthy306@gmail.com",
         password_hash=pw_hash,
         role_id=admin_role.id,
         is_active=True,
@@ -144,8 +144,8 @@ def _seed_gst_registration(db, force):
         reg_type="Regular",
         is_primary=True,
         reg_date=date(2018, 7, 1),
-        email="gst@spoorthy.in",
-        mobile="+91-9876543210",
+        email="spoorthy306@gmail.com",
+        mobile="",
     ))
     db.flush()
     print(f"  ✅  {'GST Registration':<30}    1 records")

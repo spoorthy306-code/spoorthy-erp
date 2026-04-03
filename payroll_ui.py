@@ -356,8 +356,8 @@ def render_payroll_page():
                     ne_dept  = st.text_input("Department", placeholder="Engineering")
                     ne_loc   = st.text_input("Work Location", placeholder="Head Office")
                 with fc2:
-                    ne_email  = st.text_input("Work Email", placeholder="name@company.com")
-                    ne_mobile = st.text_input("Mobile", placeholder="+91 99999 00000")
+                    ne_email  = st.text_input("Work Email", placeholder="spoorthy306@gmail.com")
+                    ne_mobile = st.text_input("Mobile", placeholder="spoorthy306@gmail.com")
                     ne_gender = st.selectbox("Gender", ["Male","Female","Other"])
                     ne_doj    = st.date_input("Date of Joining", value=date.today(), format="DD/MM/YYYY")
                     ne_dob    = st.date_input("Date of Birth", value=date(1995,1,1), format="DD/MM/YYYY")

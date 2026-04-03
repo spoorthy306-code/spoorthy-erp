@@ -26,7 +26,9 @@ from .core.security import verify_pqc_signature, create_api_key
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
 from fastapi.responses import Response
 from .api.v1.api import api_router
+from .api.auth import router as auth_router, ensure_default_admin
 from .core.logging_config import setup_logging
+from backend.db.session import SessionLocal
 
 # Setup structured logging
 logger = structlog.get_logger()
@@ -44,6 +46,11 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Spoorthy Quantum OS API")
     await create_tables()
+    db = SessionLocal()
+    try:
+        ensure_default_admin(db)
+    finally:
+        db.close()
     yield
     # Shutdown
     logger.info("Shutting down Spoorthy Quantum OS API")
@@ -208,6 +215,8 @@ async def generate_api_key(current_user: str = Depends(get_current_active_user))
     return {"api_key": api_key}
 
 # Include API routers
+app.include_router(auth_router, prefix="/api/v1")
+
 app.include_router(
     api_router,
     prefix="/api/v1",

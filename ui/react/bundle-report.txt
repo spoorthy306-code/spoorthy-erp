@@ -1,0 +1,34 @@
+Bundle Size Analysis
+====================
+
+404-DE7xUZ1f.js: 0.25 kB gzip
+Charts-BnoTxZj-.js: 0.84 kB gzip
+accounts-Cxs8AsTV.js: 1.71 kB gzip
+dashboard-3mXwTGow.js: 1.86 kB gzip
+entities-BLV1ySzG.js: 2.62 kB gzip
+entries-Bugd2xeS.js: 9.39 kB gzip
+formatters-B-jsyVC6.js: 0.13 kB gzip
+forms-bkg2oIZU.js: 23.07 kB gzip
+gst-tAWOFdOL.js: 2.72 kB gzip
+index-9-CZ6pGO.css: 5.75 kB gzip
+index-DQWddta8.js: 5.40 kB gzip
+invoices-DhT1T_hv.js: 2.69 kB gzip
+network-qFyJwsfU.js: 14.51 kB gzip
+react-query-DZeIXIUi.js: 1.27 kB gzip
+react-vendor-0Ho0ZMxC.js: 61.90 kB gzip
+reports-BCyJGumq.js: 3.17 kB gzip
+router-Cqt-EKCA.js: 2.04 kB gzip
+settings-CX9KkFhH.js: 0.27 kB gzip
+state-B28jL82-.js: 1.30 kB gzip
+useEntities-Bg_e1FeE.js: 0.64 kB gzip
+useJournalEntries-CEk7orFI.js: 1.04 kB gzip
+
+Total gzip size: 142.57 kB
+Budget: 160.00 kB
+
+OK index: 5.75 / 8.00 kB
+OK react-vendor: 61.90 / 70.00 kB
+OK forms: 23.07 / 25.00 kB
+OK network: 14.51 / 20.00 kB
+
+OK total: headroom 17.43 kB

@@ -1,0 +1,6 @@
+E:\ERP\spoorthy-erp\backend\app\db\seed_masters.py:103: bank_details="Bank: ICICI Bank, A/c: 1234567890, IFSC: ICIC0000001"
+E:\ERP\spoorthy-erp\db\seed.py:148: mobile="+91-9876543210",
+E:\ERP\spoorthy-erp\app.py:1843: value=profile.bank_details if profile else "Bank: ICICI Bank, A/c: 1234567890, IFSC: ICIC0000001",
+E:\ERP\spoorthy-erp\spoorthy_finance_complete.py:5507: pat  = hosp.register_patient({"name":"Ravi Kumar","age":55,"comorbidities":["diabetes","hypertension"]},"ABHA-1234567890")
+E:\ERP\spoorthy-erp\spoorthy_finance_complete.py:5607: ksef = ee.poland_ksef({"nip":"1234567890","net":50000})
+E:\ERP\spoorthy-erp\spoorthy_finance_complete.py:9891: "effective":"2023-08-01","old":1000000000,"new":50000000,

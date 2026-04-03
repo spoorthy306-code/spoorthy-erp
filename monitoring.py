@@ -399,8 +399,8 @@ health_checker = HealthChecker(metrics_collector)
 ALERTMANAGER_CONFIG = """
 global:
   smtp_smarthost: 'smtp.gmail.com:587'
-  smtp_from: 'alerts@spoorthy.com'
-  smtp_auth_username: 'alerts@spoorthy.com'
+  smtp_from: 'spoorthy306@gmail.com'
+  smtp_auth_username: 'spoorthy306@gmail.com'
   smtp_auth_password: 'your_password_here'
 
 route:
@@ -417,7 +417,7 @@ route:
 receivers:
 - name: 'spoorthy-team'
   email_configs:
-  - to: 'team@spoorthy.com'
+  - to: 'spoorthy306@gmail.com'
     subject: 'Spoorthy Quantum OS Alert: {{ .GroupLabels.alertname }}'
     body: |
       Alert: {{ .GroupLabels.alertname }}
@@ -428,7 +428,7 @@ receivers:
 
 - name: 'spoorthy-critical'
   email_configs:
-  - to: 'critical@spoorthy.com'
+  - to: 'spoorthy306@gmail.com'
     subject: 'CRITICAL: Spoorthy Quantum OS Alert: {{ .GroupLabels.alertname }}'
   slack_configs:
   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'

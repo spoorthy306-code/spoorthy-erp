@@ -42,7 +42,7 @@ def init_database():
             if not admin:
                 admin = User(
                     username="admin",
-                    email="admin@spoorthy.com",
+                    email="spoorthy306@gmail.com",
                     password_hash=get_password_hash("admin123"),
                     role_id=admin_role.id,
                     is_active=True
@@ -59,7 +59,7 @@ def init_database():
             if not accountant:
                 accountant = User(
                     username="accountant",
-                    email="accountant@spoorthy.com",
+                    email="spoorthy306@gmail.com",
                     password_hash=get_password_hash("accountant123"),
                     role_id=accountant_role.id,
                     is_active=True

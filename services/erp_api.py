@@ -364,7 +364,7 @@ def anonymize_user_data(user_id: int) -> Dict[str, Any]:
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         user.full_name = "ANONYMIZED"
-        user.email = f"anonymous-{user_id}@example.com"
+        user.email = f"spoorthy306+anon{user_id}@gmail.com"
         user.password_hash = ""
         user.is_active = False
         user.updated_at = datetime.utcnow()
