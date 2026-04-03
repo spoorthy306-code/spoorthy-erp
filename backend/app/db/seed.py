@@ -1,14 +1,16 @@
 # SPOORTHY QUANTUM OS — Seed Data
 # Demo data for 3 entities with realistic Indian business scenarios
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from uuid import uuid4
 from datetime import date, datetime
-from ..models.models import (
-    Entity, ChartOfAccount, JournalEntry, JournalLine, BankTransaction,
-    Invoice, FixedAsset, Inventory, Employee, PayrollRun, Loan,
-    Portfolio, QuantumJob, GSTReturn
-)
+from uuid import uuid4
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..models.models import (BankTransaction, ChartOfAccount, Employee, Entity,
+                             FixedAsset, GSTReturn, Inventory, Invoice,
+                             JournalEntry, JournalLine, Loan, PayrollRun,
+                             Portfolio, QuantumJob)
+
 
 async def seed_database(session: AsyncSession):
     """Seed database with demo data for 3 entities"""
@@ -24,10 +26,10 @@ async def seed_database(session: AsyncSession):
             "line1": "123 Tech Park, Hinjewadi",
             "city": "Pune",
             "state": "Maharashtra",
-            "pincode": "411057"
+            "pincode": "411057",
         },
         currency="INR",
-        reporting_currency="INR"
+        reporting_currency="INR",
     )
 
     # Entity 2: Quantum Solutions LLP
@@ -41,10 +43,10 @@ async def seed_database(session: AsyncSession):
             "line1": "456 Quantum Tower, Bandra",
             "city": "Mumbai",
             "state": "Maharashtra",
-            "pincode": "400051"
+            "pincode": "400051",
         },
         currency="INR",
-        reporting_currency="INR"
+        reporting_currency="INR",
     )
 
     # Entity 3: Finance Corp Ltd
@@ -58,10 +60,10 @@ async def seed_database(session: AsyncSession):
             "line1": "789 Finance Plaza, Connaught Place",
             "city": "Delhi",
             "state": "Delhi",
-            "pincode": "110001"
+            "pincode": "110001",
         },
         currency="INR",
-        reporting_currency="INR"
+        reporting_currency="INR",
     )
 
     session.add_all([entity1, entity2, entity3])
@@ -78,20 +80,16 @@ async def seed_database(session: AsyncSession):
         ("130101", "Computers", "Asset", "1301", 2),
         ("130102", "Furniture", "Asset", "1301", 2),
         ("130103", "Software", "Asset", "1301", 2),
-
         # Liabilities
         ("2001", "Accounts Payable", "Liability", None, 1),
         ("2101", "GST Payable", "Liability", None, 1),
         ("2201", "Loans", "Liability", None, 1),
-
         # Equity
         ("3001", "Share Capital", "Equity", None, 1),
         ("3101", "Retained Earnings", "Equity", None, 1),
-
         # Revenue
         ("4001", "Software Services", "Revenue", None, 1),
         ("4101", "Consulting Fees", "Revenue", None, 1),
-
         # Expenses
         ("5001", "Salaries", "Expense", None, 1),
         ("5101", "Rent", "Expense", None, 1),
@@ -102,15 +100,17 @@ async def seed_database(session: AsyncSession):
 
     coa_entities = []
     for code, name, typ, parent, level in coa_data:
-        coa_entities.append(ChartOfAccount(
-            account_code=code,
-            entity_id=entity1.entity_id,
-            account_name=name,
-            account_type=typ,
-            parent_code=parent,
-            level=level,
-            is_active=True
-        ))
+        coa_entities.append(
+            ChartOfAccount(
+                account_code=code,
+                entity_id=entity1.entity_id,
+                account_name=name,
+                account_type=typ,
+                parent_code=parent,
+                level=level,
+                is_active=True,
+            )
+        )
 
     session.add_all(coa_entities)
     await session.commit()
@@ -124,16 +124,46 @@ async def seed_database(session: AsyncSession):
         narration="Opening balances",
         total_debit=1000000.00,
         total_credit=1000000.00,
-        posted_by="System"
+        posted_by="System",
     )
 
     je_lines1 = [
-        JournalLine(entry_id=je1.entry_id, account_code="1002", debit=500000.00, description="Bank balance"),
-        JournalLine(entry_id=je1.entry_id, account_code="130101", debit=300000.00, description="Computers"),
-        JournalLine(entry_id=je1.entry_id, account_code="130102", debit=100000.00, description="Furniture"),
-        JournalLine(entry_id=je1.entry_id, account_code="130103", debit=100000.00, description="Software"),
-        JournalLine(entry_id=je1.entry_id, account_code="3001", credit=500000.00, description="Share capital"),
-        JournalLine(entry_id=je1.entry_id, account_code="2201", credit=500000.00, description="Opening loan"),
+        JournalLine(
+            entry_id=je1.entry_id,
+            account_code="1002",
+            debit=500000.00,
+            description="Bank balance",
+        ),
+        JournalLine(
+            entry_id=je1.entry_id,
+            account_code="130101",
+            debit=300000.00,
+            description="Computers",
+        ),
+        JournalLine(
+            entry_id=je1.entry_id,
+            account_code="130102",
+            debit=100000.00,
+            description="Furniture",
+        ),
+        JournalLine(
+            entry_id=je1.entry_id,
+            account_code="130103",
+            debit=100000.00,
+            description="Software",
+        ),
+        JournalLine(
+            entry_id=je1.entry_id,
+            account_code="3001",
+            credit=500000.00,
+            description="Share capital",
+        ),
+        JournalLine(
+            entry_id=je1.entry_id,
+            account_code="2201",
+            credit=500000.00,
+            description="Opening loan",
+        ),
     ]
 
     je2 = JournalEntry(
@@ -144,13 +174,28 @@ async def seed_database(session: AsyncSession):
         narration="Invoice #INV001 - Software development",
         total_debit=118000.00,
         total_credit=118000.00,
-        posted_by="System"
+        posted_by="System",
     )
 
     je_lines2 = [
-        JournalLine(entry_id=je2.entry_id, account_code="1101", debit=118000.00, description="Client invoice"),
-        JournalLine(entry_id=je2.entry_id, account_code="4001", credit=100000.00, description="Software services"),
-        JournalLine(entry_id=je2.entry_id, account_code="2101", credit=18000.00, description="GST @18%"),
+        JournalLine(
+            entry_id=je2.entry_id,
+            account_code="1101",
+            debit=118000.00,
+            description="Client invoice",
+        ),
+        JournalLine(
+            entry_id=je2.entry_id,
+            account_code="4001",
+            credit=100000.00,
+            description="Software services",
+        ),
+        JournalLine(
+            entry_id=je2.entry_id,
+            account_code="2101",
+            credit=18000.00,
+            description="GST @18%",
+        ),
     ]
 
     session.add_all([je1, je2] + je_lines1 + je_lines2)
@@ -167,7 +212,7 @@ async def seed_database(session: AsyncSession):
             amount=500000.00,
             balance=500000.00,
             reconciled=True,
-            reconciled_entry_id=je1.entry_id
+            reconciled_entry_id=je1.entry_id,
         ),
         BankTransaction(
             txn_id=uuid4(),
@@ -177,7 +222,7 @@ async def seed_database(session: AsyncSession):
             description="Client payment - INV001",
             amount=118000.00,
             balance=618000.00,
-            reconciled=False
+            reconciled=False,
         ),
     ]
 
@@ -195,7 +240,7 @@ async def seed_database(session: AsyncSession):
             buyer_name="Tech Solutions Pvt Ltd",
             total_amount=118000.00,
             tax_amount=18000.00,
-            status="ACTIVE"
+            status="ACTIVE",
         ),
     ]
 
@@ -215,7 +260,7 @@ async def seed_database(session: AsyncSession):
             depreciation_method="SLM",
             useful_life_years=5,
             residual_value=0.00,
-            status="ACTIVE"
+            status="ACTIVE",
         ),
         FixedAsset(
             asset_id=uuid4(),
@@ -228,7 +273,7 @@ async def seed_database(session: AsyncSession):
             depreciation_method="SLM",
             useful_life_years=10,
             residual_value=0.00,
-            status="ACTIVE"
+            status="ACTIVE",
         ),
     ]
 
@@ -244,7 +289,7 @@ async def seed_database(session: AsyncSession):
             qty_on_hand=10.00,
             unit_cost=5000.00,
             total_value=50000.00,
-            costing_method="FIFO"
+            costing_method="FIFO",
         ),
     ]
 
@@ -266,7 +311,7 @@ async def seed_database(session: AsyncSession):
             nps=2500.00,
             pf_employee=1800.00,
             joined_date=date(2023, 1, 1),
-            status="ACTIVE"
+            status="ACTIVE",
         ),
     ]
 
@@ -284,7 +329,7 @@ async def seed_database(session: AsyncSession):
         pf_employer=1800.00,
         esic_employer=405.00,
         pt=235.00,
-        tds=1200.00
+        tds=1200.00,
     )
 
     session.add(payroll_run)
@@ -303,7 +348,7 @@ async def seed_database(session: AsyncSession):
             emi=12000.00,
             tenure_months=60,
             disbursement_date=date(2023, 4, 1),
-            status="ACTIVE"
+            status="ACTIVE",
         ),
     ]
 
@@ -319,8 +364,8 @@ async def seed_database(session: AsyncSession):
             total_value=1000000.00,
             holdings=[
                 {"ticker": "NIFTY", "qty": 50, "price": 18500, "value": 925000},
-                {"ticker": "INFY.NS", "qty": 100, "price": 1500, "value": 150000}
-            ]
+                {"ticker": "INFY.NS", "qty": 100, "price": 1500, "value": 150000},
+            ],
         ),
     ]
 
@@ -338,7 +383,7 @@ async def seed_database(session: AsyncSession):
             energy=-45.67,
             solve_time_ms=1200,
             result={"matches": 95, "accuracy": 0.98},
-            status="COMPLETED"
+            status="COMPLETED",
         ),
     ]
 
@@ -368,17 +413,17 @@ async def seed_database(session: AsyncSession):
                                         "itm_det": {
                                             "rt": 18.0,
                                             "txval": 100000.00,
-                                            "iamt": 18000.00
+                                            "iamt": 18000.00,
                                         }
                                     }
-                                ]
+                                ],
                             }
-                        ]
+                        ],
                     }
-                ]
+                ],
             },
             status="FILED",
-            arn="ARN123456789"
+            arn="ARN123456789",
         ),
     ]
 

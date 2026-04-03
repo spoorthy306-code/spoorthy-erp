@@ -1,26 +1,31 @@
 # SPOORTHY QUANTUM OS — Payroll API
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
 from typing import List, Optional
 from uuid import UUID
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from ....db.session import get_db
-from ....repositories.repositories import PayrollRunRepository, EmployeeRepository
-from ....models.models import PayrollRunSchema, PayrollRunCreateSchema, PayrollRun, Employee
+from ....models.models import (Employee, PayrollRun, PayrollRunCreateSchema,
+                               PayrollRunSchema)
+from ....repositories.repositories import (EmployeeRepository,
+                                           PayrollRunRepository)
 
 router = APIRouter()
 
+
 @router.post("/run", response_model=PayrollRunSchema, status_code=201)
 async def run_payroll(
-    payroll: PayrollRunCreateSchema,
-    db: AsyncSession = Depends(get_db)
+    payroll: PayrollRunCreateSchema, db: AsyncSession = Depends(get_db)
 ):
     # Check for existing run
     run_repo = PayrollRunRepository(db)
     existing = await run_repo.get_by_entity_period(payroll.entity_id, payroll.period)
     if existing:
-        raise HTTPException(status_code=409, detail=f"Payroll already run for period {payroll.period}")
+        raise HTTPException(
+            status_code=409, detail=f"Payroll already run for period {payroll.period}"
+        )
 
     # Get all active employees
     emp_repo = EmployeeRepository(db)
@@ -69,40 +74,39 @@ async def run_payroll(
         pf_employer=round(total_pf_employer, 2),
         esic_employer=round(total_esic * 3.25 / 0.75, 2),
         pt=round(total_pt, 2),
-        tds=round(total_tds, 2)
+        tds=round(total_tds, 2),
     )
     return PayrollRunSchema.model_validate(run)
+
 
 @router.get("/", response_model=List[PayrollRunSchema])
 async def list_payroll_runs(
     entity_id: UUID,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(PayrollRun).where(PayrollRun.entity_id == entity_id)
-        .offset(skip).limit(limit)
+        select(PayrollRun)
+        .where(PayrollRun.entity_id == entity_id)
+        .offset(skip)
+        .limit(limit)
     )
     runs = result.scalars().all()
     return [PayrollRunSchema.model_validate(r) for r in runs]
 
+
 @router.get("/{run_id}", response_model=PayrollRunSchema)
-async def get_payroll_run(
-    run_id: UUID,
-    db: AsyncSession = Depends(get_db)
-):
+async def get_payroll_run(run_id: UUID, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(PayrollRun).where(PayrollRun.run_id == run_id))
     run = result.scalar_one_or_none()
     if not run:
         raise HTTPException(status_code=404, detail="Payroll run not found")
     return PayrollRunSchema.model_validate(run)
 
+
 @router.delete("/{run_id}", status_code=204)
-async def delete_payroll_run(
-    run_id: UUID,
-    db: AsyncSession = Depends(get_db)
-):
+async def delete_payroll_run(run_id: UUID, db: AsyncSession = Depends(get_db)):
     result = await db.execute(delete(PayrollRun).where(PayrollRun.run_id == run_id))
     await db.commit()
     if result.rowcount == 0:

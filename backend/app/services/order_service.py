@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
-from backend.app.models.order import Order, OrderStatus
+
 from backend.app.models.masters import TaxMaster
+from backend.app.models.order import Order, OrderStatus
 from backend.app.schemas.order import OrderCreate, OrderUpdate
 from backend.app.services.accounting_service import AccountingService
 
@@ -19,7 +20,9 @@ def create_order(db: Session, order_in: OrderCreate):
     total_amount = subtotal
 
     if order_in.tax_id:
-        tax_rate = db.query(TaxMaster.rate).filter(TaxMaster.id == order_in.tax_id).scalar()
+        tax_rate = (
+            db.query(TaxMaster.rate).filter(TaxMaster.id == order_in.tax_id).scalar()
+        )
         if tax_rate is not None:
             tax_amount = round((subtotal * tax_rate) / 100.0, 2)
             total_amount = round(subtotal + tax_amount, 2)
@@ -58,7 +61,10 @@ def complete_order(db: Session, order_id: int):
         order.subtotal = round(order.quantity * order.unit_price, 2)
         tax_rate = 0.0
         if order.tax_id:
-            tax_rate = db.query(TaxMaster.rate).filter(TaxMaster.id == order.tax_id).scalar() or 0.0
+            tax_rate = (
+                db.query(TaxMaster.rate).filter(TaxMaster.id == order.tax_id).scalar()
+                or 0.0
+            )
 
         subtotal_float = float(order.subtotal)
         order.tax_amount = round((subtotal_float * tax_rate) / 100.0, 2)
@@ -106,7 +112,9 @@ def update_order(db: Session, order_id: int, order_in: OrderUpdate):
         order.subtotal = round(order.quantity * order.unit_price, 2)
         tax_rate = None
         if order.tax_id:
-            tax_rate = db.query(TaxMaster.rate).filter(TaxMaster.id == order.tax_id).scalar()
+            tax_rate = (
+                db.query(TaxMaster.rate).filter(TaxMaster.id == order.tax_id).scalar()
+            )
         if tax_rate is None:
             tax_rate = 0.0
 

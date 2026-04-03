@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from backend.db.session import SessionLocal
-from backend.app.models.company import CompanyProfile
-from backend.app.schemas.company import CompanyProfileCreate, CompanyProfileRead
 
-router = APIRouter(prefix='/company', tags=['company'])
+from backend.app.models.company import CompanyProfile
+from backend.app.schemas.company import (CompanyProfileCreate,
+                                         CompanyProfileRead)
+from backend.db.session import SessionLocal
+
+router = APIRouter(prefix="/company", tags=["company"])
 
 
 def get_db():
@@ -15,16 +17,20 @@ def get_db():
         db.close()
 
 
-@router.get('/profile', response_model=CompanyProfileRead)
+@router.get("/profile", response_model=CompanyProfileRead)
 def get_company_profile(db: Session = Depends(get_db)):
     profile = db.query(CompanyProfile).first()
     if not profile:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Company profile not found')
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Company profile not found"
+        )
     return profile
 
 
-@router.post('/profile', response_model=CompanyProfileRead)
-def create_or_update_company_profile(data: CompanyProfileCreate, db: Session = Depends(get_db)):
+@router.post("/profile", response_model=CompanyProfileRead)
+def create_or_update_company_profile(
+    data: CompanyProfileCreate, db: Session = Depends(get_db)
+):
     profile = db.query(CompanyProfile).first()
     if profile:
         profile.name = data.name

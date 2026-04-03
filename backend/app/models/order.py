@@ -1,7 +1,10 @@
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, Enum, ForeignKey
-from sqlalchemy.orm import relationship
-from datetime import datetime
 import enum
+from datetime import datetime
+
+from sqlalchemy import (Column, DateTime, Enum, ForeignKey, Integer, Numeric,
+                        String)
+from sqlalchemy.orm import relationship
+
 from backend.db.base import Base
 
 
@@ -29,7 +32,9 @@ class Order(Base):
     tax_id = Column(Integer, ForeignKey("tax_masters.id"), nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
     unit = relationship("UnitMaster", back_populates="orders")
     tax = relationship("TaxMaster", back_populates="orders")

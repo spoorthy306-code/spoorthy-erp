@@ -266,7 +266,6 @@ async def workflow_metrics_endpoint():
 
 @app.post("/workflow/schedule")
 async def workflow_schedule(body: Dict[str, Any]):
-    from datetime import datetime
     start_at = datetime.fromisoformat(body.get("start_at"))
     return schedule_workflow_start(int(body.get("definition_id", 0)), start_at)
 

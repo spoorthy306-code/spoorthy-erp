@@ -38,7 +38,9 @@ class TestEntityAPI:
             "currency": "INR",
             "reporting_currency": "INR",
         }
-        response = client.put(f"/api/v1/entities/{created['entity_id']}", json=update_data)
+        response = client.put(
+            f"/api/v1/entities/{created['entity_id']}", json=update_data
+        )
         assert response.status_code == 200
         assert response.json()["name"] == "Updated Test Company"
 
@@ -83,7 +85,9 @@ class TestJournalEntryAPI:
             ],
         }
         client.post("/api/v1/journal-entries/", json=payload)
-        response = client.get(f"/api/v1/journal-entries/?entity_id={entity['entity_id']}")
+        response = client.get(
+            f"/api/v1/journal-entries/?entity_id={entity['entity_id']}"
+        )
         assert response.status_code == 200
         assert isinstance(response.json(), list)
 
@@ -142,7 +146,9 @@ class TestInvoiceAPI:
 class TestReportsAPI:
     def test_trial_balance_report(self, client, sample_entity_data):
         entity = client.post("/api/v1/entities/", json=sample_entity_data).json()
-        response = client.get(f"/api/v1/reports/trial-balance/{entity['entity_id']}?period=2024-03")
+        response = client.get(
+            f"/api/v1/reports/trial-balance/{entity['entity_id']}?period=2024-03"
+        )
         assert response.status_code == 200
         data = response.json()
         assert "accounts" in data
@@ -151,7 +157,9 @@ class TestReportsAPI:
 
     def test_profit_loss_report(self, client, sample_entity_data):
         entity = client.post("/api/v1/entities/", json=sample_entity_data).json()
-        response = client.get(f"/api/v1/reports/pnl/{entity['entity_id']}?period=2024-03")
+        response = client.get(
+            f"/api/v1/reports/pnl/{entity['entity_id']}?period=2024-03"
+        )
         assert response.status_code == 200
         data = response.json()
         assert "revenue" in data
@@ -160,7 +168,9 @@ class TestReportsAPI:
 
     def test_balance_sheet_report(self, client, sample_entity_data):
         entity = client.post("/api/v1/entities/", json=sample_entity_data).json()
-        response = client.get(f"/api/v1/reports/balance-sheet/{entity['entity_id']}?as_of_date=2024-03-31")
+        response = client.get(
+            f"/api/v1/reports/balance-sheet/{entity['entity_id']}?as_of_date=2024-03-31"
+        )
         assert response.status_code == 200
         data = response.json()
         assert "assets" in data
@@ -181,7 +191,9 @@ class TestComplianceAPI:
 
     def test_compliance_status(self, client, sample_entity_data):
         entity = client.post("/api/v1/entities/", json=sample_entity_data).json()
-        response = client.get(f"/api/v1/compliance/compliance-status/{entity['entity_id']}")
+        response = client.get(
+            f"/api/v1/compliance/compliance-status/{entity['entity_id']}"
+        )
         assert response.status_code == 200
         data = response.json()
         assert "overall_status" in data
